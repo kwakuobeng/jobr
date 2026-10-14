@@ -5,7 +5,7 @@
 --      learned another user's candidate_profile / resume / application / match_evaluation UUID
 --      could attach their own rows to that parent (FK checks ignore RLS).
 --   2) CREATE EXTENSION postgis in public left spatial_ref_sys (and related catalog objects)
---      without RLS and granted to PUBLIC, so anon could read/write them.
+--      without RLS and granted to PUBLIC. Install PostGIS in extensions in 0001.
 --
 -- Migration numbering note: blueprint T-103 wants 0002_storage_rls and T-401 wants a hybrid
 -- RPC as 0002/0003. This file claims 0002 for the security fix; rename later blueprint
@@ -357,34 +357,16 @@ CREATE POLICY "reminders_update_own" ON public.reminders
   );
 
 -- ---------------------------------------------------------------------------
--- 3) PostGIS public-catalog hardening.
---    Moving the extension to schema `extensions` after 0001 already created
---    geography(Point, 4326) columns is unsafe (type/operator lookup depends on
---    the extension's install schema). Instead: revoke ALL from PUBLIC / anon /
---    authenticated on every PostGIS-created public relation, and enable RLS
---    with no policies so even a future grant cannot leak rows to API roles.
+-- 3) PostGIS catalog placement.
+--    0001 installs PostGIS in the unexposed extensions schema. Do not ALTER
+--    extension-owned tables: Supabase's postgres role does not own them.
+--    Fail closed if a pre-existing public installation exposes catalog objects.
 -- ---------------------------------------------------------------------------
 DO $$
-DECLARE
-  rel text;
 BEGIN
-  FOREACH rel IN ARRAY ARRAY[
-    'spatial_ref_sys',
-    'geometry_columns',
-    'geography_columns'
-  ]
-  LOOP
-    IF to_regclass('public.' || rel) IS NOT NULL THEN
-      EXECUTE format('REVOKE ALL ON TABLE public.%I FROM PUBLIC, anon, authenticated;', rel);
-      -- Views cannot have RLS; only base tables.
-      IF EXISTS (
-        SELECT 1 FROM pg_class c
-        JOIN pg_namespace n ON n.oid = c.relnamespace
-        WHERE n.nspname = 'public' AND c.relname = rel AND c.relkind = 'r'
-      ) THEN
-        EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY;', rel);
-        EXECUTE format('ALTER TABLE public.%I FORCE ROW LEVEL SECURITY;', rel);
-      END IF;
-    END IF;
-  END LOOP;
+  IF to_regclass('public.spatial_ref_sys') IS NOT NULL
+     OR to_regclass('public.geometry_columns') IS NOT NULL
+     OR to_regclass('public.geography_columns') IS NOT NULL THEN
+    RAISE EXCEPTION 'PostGIS catalog objects must not be exposed in public';
+  END IF;
 END $$;

@@ -15,3 +15,5 @@ data/jobs-latest.json
 data/pull-report.json
 data/ranked-top.json
 data/ranked-report.md
+playwright-report/
+test-results/

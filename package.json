@@ -8,14 +8,27 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings=0",
-    "test:unit": "vitest run tests/unit",
-    "test:db": "bash scripts/run-pgtap-local.sh"
+    "test:unit": "vitest run tests/unit tests/integration tests/security --coverage",
+    "test:db": "bash scripts/run-pgtap-local.sh",
+    "test:integration": "vitest run tests/integration",
+    "test:security": "vitest run tests/security",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:live": "vitest run tests/live",
+    "test:db:supabase": "supabase db reset --local && supabase test db"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.3",
     "next": "^15.5.27",
     "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react-dom": "^19.3.0",
+    "zod": "^3.25.76",
+    "undici": "^6.21.3",
+    "ipaddr.js": "^2.2.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.3.1",
+    "@radix-ui/react-slot": "^1.2.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.7",
@@ -30,13 +43,8 @@
     "tailwindcss": "^4.3.3",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.71.2",
-    "vitest": "^5.0.4"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "supabase",
-      "sharp",
-      "unrs-resolver"
-    ]
+    "vitest": "4.0.18",
+    "@vitest/coverage-v8": "4.0.18",
+    "@playwright/test": "^1.56.1"
   }
 }

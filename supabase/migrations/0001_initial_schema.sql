@@ -4,7 +4,16 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "vector";
 CREATE EXTENSION IF NOT EXISTS "pg_trgm";
-CREATE EXTENSION IF NOT EXISTS "postgis";
+-- Keep PostGIS-owned catalogs outside schemas exposed by the Data API.
+-- Supabase owns spatial_ref_sys; project migrations cannot enable RLS on it.
+CREATE SCHEMA IF NOT EXISTS extensions;
+CREATE EXTENSION IF NOT EXISTS "postgis" WITH SCHEMA extensions;
+DO $$
+BEGIN
+  IF (SELECT extnamespace <> 'extensions'::regnamespace FROM pg_extension WHERE extname = 'postgis') THEN
+    RAISE EXCEPTION 'PostGIS must be installed in extensions before applying the Jobr foundation; use a fresh database or an operator-reviewed relocation';
+  END IF;
+END $$;
   
 CREATE TYPE user_role_type AS ENUM ('candidate', 'admin', 'support_auditor');
 CREATE TYPE skill_evidence_type AS ENUM ('explicit_resume', 'user_verified_addition', 'inferred_transferable');
@@ -131,7 +140,7 @@ CREATE TABLE public.job_preferences (
   excluded_employer_domains TEXT[] NOT NULL DEFAULT '{}',
   allowed_workplace_types workplace_mode_type[] NOT NULL DEFAULT '{remote,hybrid,onsite}',
   preferred_locations JSONB NOT NULL DEFAULT '[]'::jsonb,
-  home_geo_point geography(Point, 4326),
+  home_geo_point extensions.geography(Point, 4326),
   max_commute_miles INTEGER CHECK (max_commute_miles >= 0 AND max_commute_miles <= 500),
   willing_to_relocate BOOLEAN NOT NULL DEFAULT false,
   hard_min_annual_salary_usd INTEGER CHECK (hard_min_annual_salary_usd >= 0),
@@ -195,7 +204,7 @@ CREATE TABLE public.canonical_jobs (
   normalized_title_slug TEXT NOT NULL,
   employer_name TEXT NOT NULL,
   locations_json JSONB NOT NULL DEFAULT '[]'::jsonb,
-  primary_geo_point geography(Point, 4326),
+  primary_geo_point extensions.geography(Point, 4326),
   workplace_type workplace_mode_type NOT NULL DEFAULT 'unspecified',
   employment_type employment_commitment_type NOT NULL DEFAULT 'full_time',
   seniority_level seniority_level_type,

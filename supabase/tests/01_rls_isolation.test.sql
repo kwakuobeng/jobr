@@ -1,6 +1,6 @@
 -- pgTAP: RLS / grant isolation for 0001 + 0002 (ownership + PostGIS hardening).
--- Proves: anon has zero access to every public app table and to PostGIS catalog
--- objects; an authenticated user cannot read/write another user's rows; child
+-- Proves: anon has zero access to every public app table; PostGIS catalogs
+-- stay outside the exposed public schema; an authenticated user cannot read/write another user's rows; child
 -- INSERT/UPDATE cannot attach to another user's parent FKs.
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap;
@@ -121,8 +121,8 @@ GRANT EXECUTE ON FUNCTION tests.application_of(uuid) TO authenticated;
 -- ---------------------------------------------------------------- structural checks
 SELECT is((SELECT count(*)::int FROM tests.app_tables), 24, 'fixture lists 24 application tables');
 SELECT tables_are('public',
-  ARRAY(SELECT tablename FROM tests.app_tables UNION ALL SELECT 'spatial_ref_sys'),
-  'public contains exactly the 24 app tables plus postgis spatial_ref_sys');
+  ARRAY(SELECT tablename FROM tests.app_tables),
+  'public contains exactly the 24 app tables; no PostGIS catalog exposure');
 SELECT is(
   (SELECT count(*)::int FROM pg_tables p JOIN tests.app_tables a USING (tablename)
      WHERE p.schemaname = 'public' AND NOT p.rowsecurity), 0,
@@ -142,25 +142,14 @@ SELECT has_function('public', 'owns_resume_version', ARRAY['uuid'], 'owns_resume
 SELECT has_function('public', 'owns_match_evaluation', ARRAY['uuid'], 'owns_match_evaluation helper exists');
 SELECT has_function('public', 'owns_application', ARRAY['uuid'], 'owns_application helper exists');
 
--- ---------------------------------------------------------------- PostGIS spatial_ref_sys hardened by 0002
-SELECT ok(
-  (SELECT rowsecurity FROM pg_tables WHERE schemaname = 'public' AND tablename = 'spatial_ref_sys'),
-  'spatial_ref_sys has RLS enabled');
-SELECT ok(NOT has_table_privilege('anon', 'public.spatial_ref_sys', 'SELECT'), 'anon lacks SELECT on spatial_ref_sys');
-SELECT ok(NOT has_table_privilege('anon', 'public.spatial_ref_sys', 'INSERT'), 'anon lacks INSERT on spatial_ref_sys');
-SELECT ok(NOT has_table_privilege('anon', 'public.spatial_ref_sys', 'UPDATE'), 'anon lacks UPDATE on spatial_ref_sys');
-SELECT ok(NOT has_table_privilege('anon', 'public.spatial_ref_sys', 'DELETE'), 'anon lacks DELETE on spatial_ref_sys');
-SELECT ok(NOT has_table_privilege('authenticated', 'public.spatial_ref_sys', 'SELECT'),
-  'authenticated lacks SELECT on spatial_ref_sys');
-
+-- ---------------------------------------------------------------- PostGIS stays outside exposed schemas
+SELECT is((SELECT n.nspname::text FROM pg_extension e JOIN pg_namespace n ON n.oid = e.extnamespace WHERE e.extname = 'postgis'), 'extensions', 'PostGIS installed in unexposed extensions schema');
+SELECT ok(to_regclass('extensions.spatial_ref_sys') IS NOT NULL, 'PostGIS reference catalog still exists');
+SELECT ok(to_regclass('public.spatial_ref_sys') IS NULL, 'spatial_ref_sys not exposed in public');
+SELECT ok(to_regclass('public.geometry_columns') IS NULL, 'geometry_columns not exposed in public');
+SELECT ok(to_regclass('public.geography_columns') IS NULL, 'geography_columns not exposed in public');
 SET LOCAL ROLE anon;
-SELECT set_config('request.jwt.claims', '', true);
-SELECT throws_ok('SELECT * FROM public.spatial_ref_sys', '42501', NULL, 'anon cannot SELECT spatial_ref_sys');
-SELECT throws_ok('DELETE FROM public.spatial_ref_sys', '42501', NULL, 'anon cannot DELETE spatial_ref_sys');
-SELECT throws_ok('UPDATE public.spatial_ref_sys SET auth_name = auth_name', '42501', NULL, 'anon cannot UPDATE spatial_ref_sys');
-SELECT throws_ok(
-  'INSERT INTO public.spatial_ref_sys (srid, auth_name, auth_srid, srtext, proj4text) VALUES (-1, ''x'', -1, ''x'', ''x'')',
-  '42501', NULL, 'anon cannot INSERT spatial_ref_sys');
+SELECT throws_ok('SELECT * FROM public.spatial_ref_sys', '42P01', NULL, 'anon cannot access a public PostGIS catalog endpoint');
 RESET ROLE;
 
 -- ---------------------------------------------------------------- anon: zero access to app tables
