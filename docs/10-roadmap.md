@@ -1,0 +1,20 @@
+# 10 — Roadmap, Phases 0–7
+
+Complexity: S (≤3 dev-days), M (≤2 weeks), L (≤4 weeks), assuming AI-assisted solo development [AV]. Agents: G = Gemini, C = Claude, X = Codex, K = Kwaku, GB = Grok Bot / Cursor agent.
+
+| Phase | Scope | Depends on | Deliverables | Agent | Acceptance criteria | Tests | Cx | Risks | Definition of done |
+|---|---|---|---|---|---|---|---|---|---|
+| **0 Blueprint & decisions** | This document. Decisions in file 02 | — | `JOBR-BLUEPRINT.md`. Decision log | GB → K | Kwaku signs off on the decide-now table | Review | S | Unvalidated assumptions | Decisions recorded in repo `docs/decisions.md` |
+| **1 Foundations** | Repo, CI, Supabase dev/prod, schema v1, Auth, RLS, `AGENTS.md`, Wrangler skeleton | 0 | Migrations for file 07 core tables. RLS test suite. CI pipeline | X (+C review) | Two-user RLS test passes (V10). CI green on main | RLS tests, migration up/down | M | Codex Web root bug | Fresh clone → `pnpm i && pnpm test` green. Preview deploy works |
+| **2 Ingestion v1** | Greenhouse, Lever, Ashby, SmartRecruiters connectors. Company registry + board detection. Policy gate (robots/terms/rate). Dedupe, expiry. `source_runs`. Cron + Queues + DLQ | 1 | Workers `ingest`. Fixtures. 150–300 boards seeded from the tracker | X, G (board list) | ≥100 boards ingested on schedule. V1, V4 thresholds met | Connector contract tests, dedupe/expiry property tests | M | Board discovery effort. Payload drift | 5 consecutive weekday runs ≥98% board success |
+| **3 Matching v1** | Extraction, embeddings, hard filters, hybrid retrieval, scoring, explanations. Golden set | 2 | `packages/core/scoring`. `eval:matching` CI job | X, K (labels) | V3 = 0 violations. P@10 ≥ 0.70 on golden set | Golden eval, exclusion property tests | M | Profile ambiguity (AE vs RevOps) | Eval report committed. Thresholds met |
+| **4 Review & tracker UI** | Today, Job detail, Tracker, Settings. Sheet/CSV import. Exclusions UI. State machine RPCs (prepare/authorize, no submit) | 1, 3 | Next.js app (PWA). Import of Kwaku's 141 rows | X, C (review of RPCs) | Import matches the sheet 100%. V6 tests pass | E2E (Playwright) for review → shortlist → prepare → authorize | M | UX scope creep | Kwaku uses it for 5 weekdays instead of the Sheet |
+| **5 Digest + email lane** (**MVP line**) | Weekday digest via Resend. Inbound alias Email Worker. HiringCafe/ATS email parsers. Confirmation-email matcher | 2, 3, 4 | Digest at 07:00 CT. Alias forwarding | X | V8, V9 thresholds. Confirmation emails flip status (V7) | Scheduler chaos tests, parser fixtures | M | Email template drift. Deliverability | **Smallest real-user MVP**: Kwaku replaces Jobber for 2 weeks with no missed digest |
+| **6 Application prep** | Package generation (answers, cover letter, resume variant), versioning + hashing, authorization UX, "Did you submit?" loop. Sheet export | 4, 5 | Prepare/Authorize screens | X, C (review prompts and safety) | 0 submissions without a consumed authorization (V6). Package edit invalidates auth | Property tests on state machine. LLM grounding checks | M | Hallucinated claims in answers | 10 real packages prepared and reviewed by Kwaku. Zero unauthorized transitions |
+| **7 SaaS hardening & scale** | Multi-user onboarding, billing (deferred decision), licensed aggregator (after provenance check), observability, security review, mobile polish, data export/delete | 6 | Cohort of 10–20 users | G (vendor diligence), C (security), X | V10–V12 pass. Cost per user within file 11 band | Load test at 1k simulated users. Pen-test checklist | L | Legal/terms review. Support load | Cohort 4-week retention measured. No P0/P1 security findings open |
+
+## Smallest real-user MVP
+Phases **1–5** for a single user (Kwaku): the four ATS APIs for his target companies, his forwarded alerts, the matching engine, the weekday digest, and the tracker with prepare/authorize (no auto-submit). The value test is "Kwaku stops running Jobber and the Google Sheet for 2 weeks and misses nothing." [AV]
+
+## Critical path
+1 → 2 → 3 → 5. Phase 4 can run in parallel with 3 once the schema is stable.

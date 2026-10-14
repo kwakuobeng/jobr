@@ -1,0 +1,1 @@
+(See user message Oct 14 2026: JOBR master architecture prompt. Sections 1-16: gap analysis, primary-source research, competitive analysis, architecture, job acquisition, matching, schema, product design, multi-agent plan, roadmap, cost model, risk register, backlog, validation, next actions.)
