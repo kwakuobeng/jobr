@@ -1,0 +1,26 @@
+{
+  "name": "@jobr/ingest",
+  "version": "1.0.0",
+  "description": "M1 public-ATS ingest adapters (T-302 base)",
+  "type": "module",
+  "scripts": {
+    "discover": "tsx src/discover.ts",
+    "enrich": "tsx src/enrich.ts",
+    "pull": "tsx src/pull.ts",
+    "rank": "tsx src/rank.ts",
+    "all": "tsx src/pull.ts && tsx src/rank.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
+  },
+  "private": true,
+  "dependencies": {
+    "zod": "^3.25.76",
+    "undici": "^6.21.3",
+    "ipaddr.js": "^2.2.0"
+  }
+}

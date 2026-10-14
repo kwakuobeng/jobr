@@ -26,7 +26,8 @@ JOBR_LIVE=1 pnpm test:live
 ```
 
 `test:db:supabase` executes `supabase db reset --local && supabase test db` against the
-local stack only. Existing `test:db` uses a disposable vanilla PostgreSQL database and
+local stack only. `test:db` runs the same pgTAP suites against the running Supabase stack. The alternative
+`test:db:local` uses a disposable vanilla PostgreSQL database and
 `scripts/local_supabase_stub.sql`; it requires pgTAP, pgvector and PostGIS and is a separate
 compatibility harness, not proof of a working Supabase stack. Do not run it against a
 production database.
@@ -79,4 +80,36 @@ See `specs/m1_1_verification.md` for commands, results and open gates. XML bound
 closed schemas, tool isolation and deterministic validation are defense layers; they do not
 prove a model cannot hallucinate. Valid citation text does not prove that a paraphrase is
 entailed by it. Human review is required before authorizing factual answers or submission.
-No live model execution or automatic application submission is implemented in M1.1.
+Packet 2 adds the OpenAI resume-extraction call, tested with a mocked client; live-model behavior is not verified here. Jobr never submits applications.
+
+
+## Packet 2
+
+- `src/lib/resume/extract.ts` accepts resume text, calls the OpenAI SDK with
+  `ResumeParseFormat`, drops ungrounded items using the existing exact `verifyQuote`,
+  and computes inclusive non-overlapping calendar months. Set `OPENAI_API_KEY` on the
+  server; `OPENAI_RESUME_MODEL` optionally selects a model. No key reaches the UI.
+- `src/lib/http/safe_fetch.ts` is GET-only, pins validated public DNS addresses to the
+  socket, rechecks every redirect (maximum three), strips headers cross-origin, and
+  limits total time and response bytes. Token buckets are shared per host.
+- `apps/ingest` is imported from PR #2 (`954c9d6`) as the canonical adapter base.
+  Provider payloads normalize with Gemini's existing schemas. New `fetchJobs(tenant)`
+  methods delegate into that layer; existing incremental adapter methods stay available
+  for compatibility. USAJOBS requires `USAJOBS_API_KEY` and `USAJOBS_USER_AGENT_EMAIL`.
+- `src/lib/ingestion/dedup.ts` implements Packet 2's tier/time-window rules. The prior
+  SimHash deduplicator remains available for existing callers; the two rule versions
+  must not be silently interchanged when transactional persistence is implemented.
+- `/matches` is a server-rendered empty shell. No profile upload or application submission
+  endpoint is added. Resume parsing operates on text; PDF/DOCX byte extraction is separate.
+
+Locked decisions: Cloudflare Workers/Queues/Cron for background work; preparation only,
+with optional submission performed by the user; free sources only, JobsPipe deferred;
+Recruitee support ends after 2027-02-10 (no Recruitee adapter is enabled in this packet).
+No matching LLM invocation is added before SQL hard filters; the score-locked explanation
+format requires server-provided SQL eligibility. Resume parsing is profile construction,
+not a job-ranking/explanation call.
+
+The inherited Cloudflare board-probe entrypoint remains undeployed. Its runtime/deployment
+and durable queue/persistence integration are not claimed as verified by Node unit tests.
+The inherited offline ranking CLI contains a single-user sample profile and must not be
+used as a multi-tenant API. No paid source or third-party job-board scraping is enabled.
