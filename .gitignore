@@ -7,3 +7,11 @@ coverage/
 .env*.local
 supabase/.temp/
 supabase/.branches/
+
+# ingest run artifacts (job snapshots, reliability logs); keep data/seed-boards.json
+data/reliability/
+data/jobs-*.jsonl
+data/jobs-latest.json
+data/pull-report.json
+data/ranked-top.json
+data/ranked-report.md
