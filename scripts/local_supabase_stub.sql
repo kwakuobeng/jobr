@@ -33,6 +33,10 @@ GRANT EXECUTE ON FUNCTION auth.uid() TO anon, authenticated, service_role;
 -- Supabase grants broad default privileges on public to API roles; replicate so that the
 -- migration's explicit REVOKEs are what actually lock tables down.
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+-- Hosted Supabase grants USAGE on the extensions schema to API roles (pgvector/PostGIS types
+-- and operators live there); without it the hybrid RPC fails locally with 42501.
+CREATE SCHEMA IF NOT EXISTS extensions;
+GRANT USAGE ON SCHEMA extensions TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT EXECUTE ON FUNCTIONS TO anon, authenticated, service_role;
