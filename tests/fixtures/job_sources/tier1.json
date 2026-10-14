@@ -1,0 +1,165 @@
+{
+  "greenhouse": {
+    "jobs": [
+      {
+        "id": 4918273,
+        "internal_job_id": 991822,
+        "title": "Senior Distributed Systems Engineer",
+        "updated_at": "2026-10-12T15:30:00Z",
+        "first_published": "2026-10-01T12:00:00Z",
+        "requisition_id": "ENG-204",
+        "absolute_url": "https://boards.greenhouse.io/stripe/jobs/4918273",
+        "location": {
+          "name": "San Francisco, CA (Hybrid)"
+        },
+        "content": "<p>Join our Core Infrastructure group building low-latency distributed storage in Go, Rust, and Kubernetes.</p>",
+        "pay_input_ranges": [
+          {
+            "min_cents": 18500000,
+            "max_cents": 22500000,
+            "currency_type": "USD",
+            "title": "SF/NYC Base Salary Range"
+          }
+        ],
+        "include_ai_disclaimer": true,
+        "ai_opt_out_request_url": "https://app.greenhouse.io/job_post/4918273/ai_opt_out",
+        "data_compliance": [
+          {
+            "type": "gdpr",
+            "requires_processing_consent": true,
+            "requires_retention_consent": true,
+            "retention_period": 365
+          }
+        ]
+      }
+    ],
+    "meta": {
+      "total": 1
+    }
+  },
+  "ashby": {
+    "apiVersion": "1",
+    "jobs": [
+      {
+        "id": "ashby-listed-001",
+        "title": "Staff Platform Engineer",
+        "location": "San Francisco, CA",
+        "secondaryLocations": [
+          {
+            "location": "New York, NY"
+          }
+        ],
+        "department": "Engineering",
+        "team": "Cloud Platform",
+        "isListed": true,
+        "isRemote": true,
+        "workplaceType": "Remote",
+        "descriptionHtml": "<p>Architect multi-region Kubernetes and Postgres clusters.</p>",
+        "descriptionPlain": "Architect multi-region Kubernetes and Postgres clusters.",
+        "publishedAt": "2026-10-10T16:21:55.393+00:00",
+        "employmentType": "FullTime",
+        "jobUrl": "https://jobs.ashbyhq.com/linear/ashby-listed-001",
+        "applyUrl": "https://jobs.ashbyhq.com/linear/ashby-listed-001/application",
+        "compensation": {
+          "compensationTierSummary": "$190K \u2013 $220K \u2022 0.15% \u2013 0.35% Equity",
+          "scrapeableCompensationSalarySummary": "$190K - $220K",
+          "summaryComponents": [
+            {
+              "compensationType": "Salary",
+              "interval": "1 YEAR",
+              "currencyCode": "USD",
+              "minValue": 190000,
+              "maxValue": 220000
+            }
+          ]
+        }
+      },
+      {
+        "id": "ashby-unlisted-002",
+        "title": "Internal Stealth Role (Should Be Filtered Out)",
+        "location": "Remote",
+        "isListed": false,
+        "isRemote": true,
+        "workplaceType": "Remote",
+        "descriptionPlain": "Unlisted internal role.",
+        "jobUrl": "https://jobs.ashbyhq.com/linear/ashby-unlisted-002",
+        "applyUrl": "https://jobs.ashbyhq.com/linear/ashby-unlisted-002/application"
+      }
+    ]
+  },
+  "lever": [
+    {
+      "id": "lever-post-901",
+      "text": "Principal Backend Engineer, Payments",
+      "hostedUrl": "https://jobs.lever.co/plaid/lever-post-901",
+      "applyUrl": "https://jobs.lever.co/plaid/lever-post-901/apply",
+      "createdAt": 1760100000000,
+      "workplaceType": "hybrid",
+      "categories": {
+        "location": "New York, NY",
+        "allLocations": [
+          "New York, NY",
+          "San Francisco, CA"
+        ],
+        "commitment": "Full-time",
+        "team": "Payments"
+      },
+      "descriptionPlain": "Lead our real-time payment ledger architecture using TypeScript, Go, and PostgreSQL.",
+      "lists": [
+        {
+          "text": "Requirements",
+          "content": "<li>6+ years backend distributed systems experience</li><li>Deep PostgreSQL and Kafka expertise</li>"
+        }
+      ],
+      "salaryRange": {
+        "currency": "USD",
+        "interval": "per-year-salary",
+        "min": 195000,
+        "max": 240000
+      }
+    }
+  ],
+  "usajobs": {
+    "SearchResult": {
+      "SearchResultItems": [
+        {
+          "MatchedObjectId": "USDS-2026-109482",
+          "MatchedObjectDescriptor": {
+            "PositionTitle": "IT Specialist (Software Developer - GS-15)",
+            "OrganizationName": "U.S. Digital Service",
+            "PositionURI": "https://www.usajobs.gov/job/812938400",
+            "ApplyURI": [
+              "https://www.usajobs.gov/job/812938400/apply"
+            ],
+            "PositionLocationDisplay": "Washington, DC",
+            "PositionLocation": [
+              {
+                "LocationName": "Washington, DC"
+              }
+            ],
+            "QualificationSummary": "One year of specialized experience equivalent to GS-14 building cloud-native services.",
+            "UserArea": {
+              "Details": {
+                "JobSummary": "Modernize high-impact federal digital services for millions of veterans and citizens.",
+                "MajorDuties": [
+                  "Lead backend architecture and API reliability."
+                ],
+                "TeleworkEligible": true
+              }
+            },
+            "PositionRemuneration": [
+              {
+                "MinimumRange": "163964.00",
+                "MaximumRange": "191900.00",
+                "RateIntervalCode": "PA",
+                "Description": "Per Year"
+              }
+            ],
+            "PublicationStartDate": "2026-10-05",
+            "ApplicationCloseDate": "2026-11-15"
+          }
+        }
+      ]
+    }
+  }
+}
