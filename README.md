@@ -59,8 +59,8 @@ registry is supplied input and must be revalidated before scheduled ingestion.
 
 ## Database migrations
 
-- `0001_initial_schema.sql`: existing core schema.
-- `0002_rls_ownership_and_postgis_hardening.sql`: existing security fix, retained.
+- `0001_initial_schema.sql`: core schema; PostGIS installs into the unexposed `extensions` schema and geography types are schema-qualified.
+- `0002_rls_ownership_and_postgis_hardening.sql`: linked-row ownership policies and a fail-closed check against public PostGIS catalog exposure.
 - `0004_hybrid_search_rpc.sql`: supplied hybrid RPC, renumbered to preserve hardening and
   reserve `0003` for future storage policies. Adds bounded parameters, ordered candidate
   limits and revokes default PUBLIC execution. It remains SECURITY INVOKER.

@@ -48,7 +48,7 @@ DECLARE
   v_hard_min_salary INTEGER;
   v_allow_undisclosed_salary BOOLEAN;
   v_requires_visa BOOLEAN;
-  v_home_geo geography(Point, 4326);
+  v_home_geo extensions.geography(Point, 4326);
   v_max_commute_meters DOUBLE PRECISION;
 BEGIN
   IF p_rrf_k IS NULL OR p_rrf_k < 1 OR p_top_n IS NULL OR p_top_n < 1 OR p_top_n > 50 THEN
@@ -151,7 +151,7 @@ BEGIN
             OR v_home_geo IS NULL
             OR v_max_commute_meters IS NULL
             OR cj.primary_geo_point IS NULL
-            OR ST_DWithin(cj.primary_geo_point, v_home_geo, v_max_commute_meters)
+            OR extensions.ST_DWithin(cj.primary_geo_point, v_home_geo, v_max_commute_meters)
           )
         )
       )

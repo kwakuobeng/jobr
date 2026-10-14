@@ -43,3 +43,15 @@ scheduler concurrency must be integrated before production ingestion.
 
 Grok gate: pending. Keep the PR unmerged until database results, PostgreSQL version alignment,
 and adversarial review are resolved.
+
+
+## Hosted CI follow-up
+
+[PR CI run 38627918318](https://github.com/kwakuobeng/jobr/actions/runs/38627918318)
+confirmed the code checks and browser job passed. The database job failed during
+migration `0002`, before pgTAP ran, because Supabase's migration role cannot ALTER
+PostGIS-owned `spatial_ref_sys`. Image pull throttling recovered and was not the final
+failure. The correction installs PostGIS into the unexposed `extensions` schema in
+`0001`, qualifies geography types/spatial calls, removes unsupported catalog ALTERs,
+and tests catalog placement while retaining all application tenant isolation checks.
+A fresh Supabase CI run must verify the corrected migrations.
