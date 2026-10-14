@@ -1,0 +1,155 @@
+{
+  "version": "2026-10-14",
+  "employers": [
+    {
+      "canonicalName": "Stripe",
+      "domain": "stripe.com",
+      "provider": "greenhouse",
+      "boardToken": "stripe"
+    },
+    {
+      "canonicalName": "Cloudflare",
+      "domain": "cloudflare.com",
+      "provider": "greenhouse",
+      "boardToken": "cloudflare"
+    },
+    {
+      "canonicalName": "Datadog",
+      "domain": "datadoghq.com",
+      "provider": "greenhouse",
+      "boardToken": "datadog"
+    },
+    {
+      "canonicalName": "Figma",
+      "domain": "figma.com",
+      "provider": "greenhouse",
+      "boardToken": "figma"
+    },
+    {
+      "canonicalName": "Coinbase",
+      "domain": "coinbase.com",
+      "provider": "greenhouse",
+      "boardToken": "coinbase"
+    },
+    {
+      "canonicalName": "Airbnb",
+      "domain": "airbnb.com",
+      "provider": "greenhouse",
+      "boardToken": "airbnb"
+    },
+    {
+      "canonicalName": "Scale AI",
+      "domain": "scale.com",
+      "provider": "greenhouse",
+      "boardToken": "scaleai"
+    },
+    {
+      "canonicalName": "Vercel",
+      "domain": "vercel.com",
+      "provider": "greenhouse",
+      "boardToken": "vercel"
+    },
+    {
+      "canonicalName": "Anthropic",
+      "domain": "anthropic.com",
+      "provider": "greenhouse",
+      "boardToken": "anthropic"
+    },
+    {
+      "canonicalName": "xAI",
+      "domain": "x.ai",
+      "provider": "greenhouse",
+      "boardToken": "xai"
+    },
+    {
+      "canonicalName": "Linear",
+      "domain": "linear.app",
+      "provider": "ashby",
+      "boardToken": "linear"
+    },
+    {
+      "canonicalName": "Supabase",
+      "domain": "supabase.com",
+      "provider": "ashby",
+      "boardToken": "supabase"
+    },
+    {
+      "canonicalName": "Ramp",
+      "domain": "ramp.com",
+      "provider": "ashby",
+      "boardToken": "ramp"
+    },
+    {
+      "canonicalName": "Retool",
+      "domain": "retool.com",
+      "provider": "ashby",
+      "boardToken": "retool"
+    },
+    {
+      "canonicalName": "PostHog",
+      "domain": "posthog.com",
+      "provider": "ashby",
+      "boardToken": "posthog"
+    },
+    {
+      "canonicalName": "Perplexity",
+      "domain": "perplexity.ai",
+      "provider": "ashby",
+      "boardToken": "perplexity"
+    },
+    {
+      "canonicalName": "Harvey",
+      "domain": "harvey.ai",
+      "provider": "ashby",
+      "boardToken": "harvey"
+    },
+    {
+      "canonicalName": "ElevenLabs",
+      "domain": "elevenlabs.io",
+      "provider": "ashby",
+      "boardToken": "elevenlabs"
+    },
+    {
+      "canonicalName": "Plaid",
+      "domain": "plaid.com",
+      "provider": "lever",
+      "boardToken": "plaid"
+    },
+    {
+      "canonicalName": "Palantir",
+      "domain": "palantir.com",
+      "provider": "lever",
+      "boardToken": "palantir"
+    },
+    {
+      "canonicalName": "Spotify",
+      "domain": "spotify.com",
+      "provider": "lever",
+      "boardToken": "spotify"
+    },
+    {
+      "canonicalName": "Zoox",
+      "domain": "zoox.com",
+      "provider": "lever",
+      "boardToken": "zoox"
+    },
+    {
+      "canonicalName": "Anduril",
+      "domain": "anduril.com",
+      "provider": "greenhouse",
+      "boardToken": "andurilindustries"
+    },
+    {
+      "canonicalName": "Mistral AI",
+      "domain": "mistral.ai",
+      "provider": "lever",
+      "boardToken": "mistral"
+    },
+    {
+      "canonicalName": "Vanta",
+      "domain": "vanta.com",
+      "provider": "ashby",
+      "boardToken": "vanta"
+    }
+  ]
+}
