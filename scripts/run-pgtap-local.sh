@@ -8,5 +8,7 @@ dropdb --if-exists "$DB"
 createdb "$DB"
 psql -v ON_ERROR_STOP=1 -q -d "$DB" -c 'CREATE EXTENSION IF NOT EXISTS pgtap;'
 psql -v ON_ERROR_STOP=1 -q -d "$DB" -f scripts/local_supabase_stub.sql
-psql -v ON_ERROR_STOP=1 -q -d "$DB" -f supabase/migrations/0001_initial_schema.sql
+for mig in supabase/migrations/*.sql; do
+  psql -v ON_ERROR_STOP=1 -q -d "$DB" -f "$mig"
+done
 pg_prove -v -d "$DB" supabase/tests/*.sql
