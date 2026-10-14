@@ -1,0 +1,23 @@
+{
+  "name": "ingest",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "discover": "tsx src/discover.ts",
+    "enrich": "tsx src/enrich.ts",
+    "pull": "tsx src/pull.ts",
+    "rank": "tsx src/rank.ts",
+    "all": "tsx src/pull.ts && tsx src/rank.ts",
+    "typecheck": "tsc"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}
