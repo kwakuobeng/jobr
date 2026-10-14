@@ -81,3 +81,6 @@ export function normalizeGreenhouseJob(
     updatedAt: item.updated_at,
   };
 }
+
+// Packet 2 name: exact substring semantics are unchanged.
+export { verifyResumeQuoteSubstring as verifyQuote } from "./resume/quote-verifier";

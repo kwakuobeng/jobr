@@ -1,5 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { z } from "zod";
+import { zodResponseFormat } from "openai/helpers/zod";
+import { verifyQuote } from "../../src/lib/m1_1_core";
 
 export interface JsonSchema {
   type?: string | string[];
@@ -240,4 +242,83 @@ export function buildMatchExplanationRequest(
       { role: "user" as const, content: request.input },
     ],
   };
+}
+
+// Packet 2 contracts coexist with the richer M1.1 formats for existing callers.
+// zodResponseFormat generates closed, required-field OpenAI JSON schemas.
+export const ResumeParse = z
+  .object({
+    experiences: z.array(
+      z
+        .object({
+          title: z.string(),
+          employer: z.string(),
+          start_ym: z.string(),
+          end_ym: z.string().nullable(),
+          verbatim_quote: z.string(),
+        })
+        .strict(),
+    ),
+    skills: z.array(
+      z
+        .object({
+          name: z.string(),
+          years: z.number().nullable(),
+          verbatim_quote: z.string(),
+        })
+        .strict(),
+    ),
+  })
+  .strict();
+export type ResumeParse = z.infer<typeof ResumeParse>;
+const QuotedReason = z
+  .object({ text: z.string(), verbatim_quote: z.string() })
+  .strict();
+export const MatchExplanation = z
+  .object({
+    fit_score_0_100: z.number().int().min(0).max(100),
+    strengths: z.array(QuotedReason),
+    gaps: z.array(QuotedReason),
+  })
+  .strict();
+export type MatchExplanation = z.infer<typeof MatchExplanation>;
+export const ResumeParseFormat = zodResponseFormat(ResumeParse, "ResumeParse");
+export const MatchExplanationFormat = zodResponseFormat(
+  MatchExplanation,
+  "MatchExplanation",
+);
+export function eligibleMatchExplanationFormat(
+  fitScore: number,
+  sqlHardFiltersPassed: boolean,
+) {
+  if (!sqlHardFiltersPassed)
+    throw new Error("SQL hard filters must pass before explanation generation");
+  if (!Number.isInteger(fitScore) || fitScore < 0 || fitScore > 100)
+    throw new Error("Invalid deterministic score");
+  // The model can only echo the score already computed by the server.
+  return zodResponseFormat(
+    MatchExplanation.extend({ fit_score_0_100: z.literal(fitScore) }),
+    "MatchExplanation",
+  );
+}
+
+export function validatePacketMatchExplanation(
+  value: unknown,
+  jobText: string,
+  resumeText: string,
+  deterministicScore: number,
+  sqlHardFiltersPassed: boolean,
+): MatchExplanation {
+  eligibleMatchExplanationFormat(deterministicScore, sqlHardFiltersPassed);
+  const result = MatchExplanation.parse(value);
+  if (result.fit_score_0_100 !== deterministicScore)
+    throw new Error("Model cannot change deterministic score");
+  for (const reason of [...result.strengths, ...result.gaps]) {
+    if (
+      !verifyQuote(jobText, reason.verbatim_quote) &&
+      !verifyQuote(resumeText, reason.verbatim_quote)
+    )
+      throw new Error("Explanation quote is not grounded");
+  }
+  return result;
 }

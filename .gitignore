@@ -9,3 +9,10 @@ supabase/.temp/
 supabase/.branches/
 playwright-report/
 test-results/
+
+data/pull-report.json
+data/ranked-top.json
+data/ranked-report.md
+data/jobs-*.jsonl
+data/jobs-latest.json
+data/reliability/

@@ -1,3 +1,4 @@
+import { canonicalFetchJobs, type Tenant } from "../adapter";
 import { z } from "zod";
 import { normalizeUsaJobsPayload } from "../../../../specs/ingestion/zod_provider_schemas";
 import { createSafeClient, type HttpClient } from "../ssrf-client";
@@ -13,9 +14,16 @@ const Config = z.object({
 export class UsaJobsAdapter implements JobSourceAdapter {
   readonly providerName = "usajobs" as const;
   private bucket = new TokenBucket();
-  constructor(
-    private client: HttpClient = createSafeClient(["data.usajobs.gov"]),
-  ) {}
+  fetchJobs(tenant: Tenant) {
+    return canonicalFetchJobs("usajobs", tenant, this.packetClient);
+  }
+  private readonly packetClient?: HttpClient;
+  constructor(client?: HttpClient) {
+    this.packetClient = client;
+    this.client = client ?? createSafeClient(["data.usajobs.gov"]);
+  }
+  private readonly client: HttpClient;
+
   async fetchIncremental(
     watermark: SyncWatermark | null,
     config: Record<string, unknown>,
