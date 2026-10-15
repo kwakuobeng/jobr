@@ -117,3 +117,22 @@ Configure the public build variables before building/deploying to Workers.
 For cloud machines with an installed Chromium, set
 `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium` to run the same Playwright
 smokes without downloading another browser; CI uses Playwright's default binary.
+
+## Preferences and matches (M1)
+
+After signing in, open `/preferences`, save the hard filters, then open `/matches`.
+The first request creates a default candidate profile only when none exists and
+inserts missing preferences using schema defaults. Inserts ignore conflicts and
+never overwrite saved preferences; all reads and writes use the user's session
+and existing RLS. The signup trigger remains responsible for `users_profile`.
+The UI reuses the shared request contracts and additionally respects PostgreSQL's
+whole-mile commute range (0–500) and integer salary range. Commute limits need an
+existing home location; this form does not collect one.
+
+Matches call the real `match_jobs_hybrid` RPC with RRF k=60 and at most 50 results.
+There is no stub mode or fabricated data. No eligible rows produces an explicit
+empty state. Stretch exceptions are opt-in and visibly labeled as relaxing hard
+filters. External source/application links open a new tab; Jobr never submits.
+`GET /api/preferences`, `PUT /api/preferences` and `POST /api/matches` require a
+verified user; writes require the same Origin as the request URL. Errors use the
+shared API error schema. Authenticated responses are private/no-store.
