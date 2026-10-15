@@ -78,11 +78,19 @@ export type HttpClient = (
   url: string,
   headers?: Record<string, string>,
 ) => Promise<HttpResult>;
-export function createSafeClient(allowedHosts?: readonly string[]): HttpClient {
+export interface SafeClientOptions {
+  // Inject a resolver (e.g. DNS-over-HTTPS on runtimes without usable system DNS).
+  // Every returned address is still checked by assertPublicAddress before connecting.
+  resolve?: ResolveAddresses;
+}
+export function createSafeClient(
+  allowedHosts?: readonly string[],
+  options: SafeClientOptions = {},
+): HttpClient {
   return async (value, headers = {}) => {
     const url = validateUrl(value, allowedHosts);
     const dispatcher = new Agent({
-      connect: { lookup: guardedLookup(), timeout: 5_000 },
+      connect: { lookup: guardedLookup(options.resolve), timeout: 5_000 },
       maxResponseSize: 5 * 1024 * 1024,
     });
     try {

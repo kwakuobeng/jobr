@@ -131,8 +131,9 @@ export const GreenhouseJobPostSchema = z.object({
     .optional(),
   questions: z.array(z.record(z.unknown())).optional(),
   data_compliance: z.array(z.record(z.unknown())).optional(),
-  include_ai_disclaimer: z.boolean().optional(),
-  ai_opt_out_request_url: z.string().optional(),
+  // Live Greenhouse boards send explicit nulls for these (QA 2026-10-15).
+  include_ai_disclaimer: z.boolean().nullable().optional(),
+  ai_opt_out_request_url: z.string().nullable().optional(),
 });
 
 export const GreenhouseBoardResponseSchema = z.object({
@@ -209,7 +210,7 @@ export function normalizeGreenhousePayload(
         complianceMetadata: {
           data_compliance: job.data_compliance ?? [],
           include_ai_disclaimer: job.include_ai_disclaimer ?? false,
-          ai_opt_out_request_url: job.ai_opt_out_request_url,
+          ai_opt_out_request_url: job.ai_opt_out_request_url ?? undefined,
         },
         rawJson: job as unknown as Record<string, unknown>,
       });
@@ -362,7 +363,8 @@ export const LeverPostingSchema = z.object({
   applyUrl: httpsUrl,
   createdAt: z.number().int().optional(),
   workplaceType: z
-    .enum(["unspecified", "on-site", "remote", "hybrid"])
+    // Lever sends both "on-site" and "onsite" in live data (QA 2026-10-15).
+    .enum(["unspecified", "on-site", "onsite", "remote", "hybrid"])
     .optional(),
   categories: z
     .object({
@@ -411,7 +413,7 @@ export function normalizeLeverPayload(
           ? [job.categories.location]
           : [];
     const wp: RawJobPayload["rawWorkplaceType"] =
-      job.workplaceType === "on-site"
+      job.workplaceType === "on-site" || job.workplaceType === "onsite"
         ? "onsite"
         : job.workplaceType === "remote"
           ? "remote"
