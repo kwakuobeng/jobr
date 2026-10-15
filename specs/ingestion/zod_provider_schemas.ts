@@ -509,6 +509,7 @@ export const UsaJobsSearchItemSchema = z.object({
             JobSummary: z.string().optional(),
             MajorDuties: z.array(z.string()).optional(),
             TeleworkEligible: z.boolean().optional(),
+            RemoteIndicator: z.boolean().optional(),
           })
           .optional(),
       })
@@ -563,7 +564,12 @@ export function normalizeUsaJobsPayload(rawResponse: unknown): RawJobPayload[] {
       rawLocations:
         desc.PositionLocation?.map((l) => l.LocationName) ??
         (desc.PositionLocationDisplay ? [desc.PositionLocationDisplay] : []),
-      rawWorkplaceType: "unspecified",
+      // Remote only on an explicit signal; telework eligibility alone is not "remote".
+      rawWorkplaceType:
+        desc.UserArea?.Details?.RemoteIndicator === true ||
+        /\bremote\b/i.test(desc.PositionLocationDisplay ?? "")
+          ? "remote"
+          : "unspecified",
       rawEmploymentType: "full_time",
       rawCompensation:
         minRaw !== undefined && !Number.isNaN(minRaw)
@@ -582,3 +588,54 @@ export function normalizeUsaJobsPayload(rawResponse: unknown): RawJobPayload[] {
     });
   });
 }
+
+// ============================================================================
+// 5. TIER-1 FIXTURE BUNDLE, ATS SEED REGISTRY & USAJOBS HEADER NAMES
+// (ported from Gemini Packet #1; builds on the schemas above, no normalizer changes)
+// ============================================================================
+
+// Header NAMES only; values come from env at runtime and are never stored here.
+export const USAJOBS_REQUIRED_HEADER_NAMES = ["Authorization-Key", "User-Agent"] as const;
+
+export const Tier1FixturesBundleSchema = z
+  .object({
+    greenhouse: GreenhouseBoardResponseSchema,
+    ashby: AshbyBoardResponseSchema,
+    lever: LeverPostingsResponseSchema,
+    usajobs: UsaJobsResponseSchema,
+  })
+  .strict();
+
+export type Tier1FixturesBundle = z.infer<typeof Tier1FixturesBundleSchema>;
+
+// Seed registry: free, public GET boards only (D8: no paid aggregators, no LinkedIn/Indeed/ZipRecruiter).
+export const AtsSeedRegistryEntrySchema = z
+  .object({
+    canonicalName: z.string().min(1),
+    domain: z
+      .string()
+      .min(1)
+      .regex(/^[a-z0-9.-]+\.[a-z]{2,}$/, "bare lowercase domain required"),
+    provider: z.enum(["greenhouse", "ashby", "lever"]),
+    boardToken: z.string().regex(/^[a-z0-9-]+$/, "lowercase board token required"),
+  })
+  .strict();
+
+export type AtsSeedRegistryEntry = z.infer<typeof AtsSeedRegistryEntrySchema>;
+
+export const AtsSeedRegistrySchema = z
+  .object({
+    version: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    employers: z.array(AtsSeedRegistryEntrySchema).min(5),
+  })
+  .strict()
+  .superRefine((registry, ctx) => {
+    const seen = new Set<string>();
+    for (const e of registry.employers) {
+      const key = `${e.provider}:${e.boardToken}`;
+      if (seen.has(key)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: `duplicate board ${key}` });
+      }
+      seen.add(key);
+    }
+  });
