@@ -87,7 +87,7 @@ export function ResumeStudio() {
       <label className="block">Years of experience (optional)<input className="mt-2 block w-32 rounded border border-slate-400 p-2 focus-visible:outline focus-visible:outline-2" type="number" min="0" max="80" step="0.1" value={chips.years ?? ""} onChange={(event) => setChips({ ...chips, years: event.target.value === "" ? null : Number(event.target.value) })} /></label>
       <p className="text-sm text-slate-600">Years are read from explicit experience statements, not calculated from employment dates. Review all chips against your original resume before saving.</p>
       <label className="flex gap-3"><input type="checkbox" checked={approved} onChange={(event) => setApproved(event.target.checked)} />Use for matching</label>
-      <p className="text-sm text-slate-600">Saves your approval for future matching integration. These chips do not change match rankings yet.</p>
+      <p className="text-sm text-slate-600">When on, your saved titles and skills are added to the Matches search to surface related roles. Hard filters from Preferences still apply.</p>
       <Button type="submit">Save resume changes</Button>
     </fieldset></form>}
   </main>;

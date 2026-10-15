@@ -54,6 +54,23 @@ it("forwards the real RPC parameters and returns an empty result", async () => {
   expect(response.status).toBe(200); expect(await response.json()).toEqual([]);
   expect(state.client.rpc).toHaveBeenCalledWith("match_jobs_hybrid", { p_candidate_profile_id: profileId, p_query_text: "engineer", p_include_stretch_exceptions: false, p_rrf_k: 60, p_top_n: 12 });
 });
+it("merges approved resume chips into the RPC query and adds a soft reason", async () => {
+  const resumeId = "cccccccc-0000-4000-8000-000000000003";
+  state.results.push(result({ id: profileId }), result(null), result(preferences), result({ id: resumeId }), result({ is_user_approved: true, normalized_profile_json: { chips: { skills: ["TypeScript"], titles: ["Software Engineer"], years: 5 } } }));
+  state.client.rpc.mockResolvedValue(result([{ canonical_job_id: profileId, title: "Software Engineer", employer_name: "X", workplace_type: "unspecified", locations_json: ["Remote"], employment_type: "full_time", extracted_required_skills: ["typescript"], min_annual_salary_usd: null, max_annual_salary_usd: null, is_salary_estimated: false, canonical_posting_url: null, application_url: null, semantic_similarity: 0, lexical_rank: 0.2, rrf_score: 0.01 }]));
+  const response = await POST(request("matches", { candidate_profile_id: profileId, query: "", include_stretch_exceptions: false, limit: 5 }));
+  expect(response.status).toBe(200);
+  expect(state.client.rpc).toHaveBeenCalledWith("match_jobs_hybrid", expect.objectContaining({ p_query_text: '"Software Engineer" or "TypeScript"' }));
+  expect(state.query.eq).toHaveBeenCalledWith("user_id", "owner"); expect(state.query.eq).toHaveBeenCalledWith("base_resume_id", resumeId);
+  const [job] = await response.json();
+  expect(job).toMatchObject({ workplace_type: "Remote", workplace_inferred: true, match_reason: "Matches your titles: Software Engineer · Skills: TypeScript" });
+});
+it("ignores resume chips when Use for matching is off", async () => {
+  state.results.push(result({ id: profileId }), result(null), result(preferences), result({ id: "cccccccc-0000-4000-8000-000000000003" }), result({ is_user_approved: false, normalized_profile_json: { chips: { skills: ["TypeScript"], titles: [], years: null } } }));
+  state.client.rpc.mockResolvedValue(result([]));
+  await POST(request("matches", { candidate_profile_id: profileId, query: "engineer", include_stretch_exceptions: false, limit: 5 }));
+  expect(state.client.rpc).toHaveBeenCalledWith("match_jobs_hybrid", expect.objectContaining({ p_query_text: "engineer" }));
+});
 it("surfaces RLS permission errors as forbidden", async () => {
   state.results.push({ data: null, error: { code: "42501", message: "permission denied" } });
   expect((await GET()).status).toBe(403);
