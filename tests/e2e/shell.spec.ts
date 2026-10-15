@@ -13,3 +13,9 @@ test("foundation shell is accessible and fits the viewport", async ({
     ),
   ).toBe(true);
 });
+
+test("anonymous protected routes redirect to sign-in", async ({ page }) => {
+  await page.goto("/matches?query=engineer");
+  await expect(page).toHaveURL(/\/sign-in\?next=/);
+  await expect(page.getByRole("heading", { name: "Sign in to Jobr" })).toBeVisible();
+});
