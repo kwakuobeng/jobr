@@ -136,3 +136,57 @@ filters. External source/application links open a new tab; Jobr never submits.
 `GET /api/preferences`, `PUT /api/preferences` and `POST /api/matches` require a
 verified user; writes require the same Origin as the request URL. Errors use the
 shared API error schema. Authenticated responses are private/no-store.
+
+## Resume and workplace UI
+
+`/resume` accepts text-based PDF/DOCX files up to 10 MiB (PDF: at most 50
+pages). Originals go to the private `resumes` Storage bucket at
+`{auth.uid()}/{resume_id}/source.pdf` or `source.docx`. The original filename is
+metadata, never part of the object key. Uploads, metadata, chip edits and approval
+use the cookie session and existing table RLS; no privileged client is used.
+
+Parsing runs locally in the upload request: unpdf's serverless PDF.js build for
+PDF text, fflate plus XML parsing for DOCX. Extraction caps PDF pages, text length
+and DOCX document XML size, rejects DTD/entity definitions, and does not render
+images or perform OCR. No OpenAI/XAI key is required or read, and resume text is
+not sent to a model. Only the public Supabase URL/key used by auth are required.
+Bounded multipart reads enforce the size limit even without Content-Length.
+Private Storage must exist; upload fails with a migration-specific error if it
+is unavailable. Original files are retained privately, including failed parses.
+An interrupted request can be retried by uploading the file again.
+
+Detected skills are validated through the existing evidence-grounded resume
+validator. Suggested title lines and explicitly stated years are heuristic and
+require review; dated employment history is not invented. Raw text and line IDs
+are stored on `resumes`; extraction provenance and editable chips are kept in
+`resume_versions.normalized_profile_json`. Editing chips preserves the original
+extraction. **Use for matching** saves `resume_versions.is_user_approved` on the
+shown version. Follow-up: matching does not consume these chips yet; this PR
+makes no changes to ranking, candidate embeddings, or hard filters.
+
+Workplace badges map stored values to Remote / Onsite / Hybrid / Unknown.
+Stored locations are displayed when useful; there is no scraping, inference,
+backfill, or write to canonical jobs. Scores are under Match details.
+
+### Deploy order for this PR
+
+1. Merge the PR, then apply `supabase/migrations/0007_storage_resumes.sql` to
+   hosted project `nwnhsqayjfwxfuthkymw` using the project's existing migration
+   workflow (for a correctly linked CLI with migration history in sync:
+   `pnpm exec supabase db push`). Do not replay or edit migrations 0001–0006.
+2. The SQL creates/configures the private bucket and four user-prefix policies;
+   no separate bucket creation is needed. In Supabase Dashboard → Storage →
+   `resumes`, verify Private, 10 MiB limit, and PDF/DOCX MIME restrictions.
+3. With existing public Supabase build variables set, run `pnpm deploy`.
+4. Sign in → Matches: verify badges and details disclosure at mobile width.
+   Resume: upload PDF and DOCX → Ready → add/remove a chip → save → reload →
+   verify persisted chips and approval. Preferences and Sign out must still work.
+5. In a second browser signed in as another user, attempt an authenticated
+   download of the first user's exact Storage path. It must fail; public object
+   URLs must also fail. Verify this through the Storage API, not only table SQL.
+
+Tests include real PDF/DOCX extraction, bounded request reads, mocked upload/edit
+and failure flows, anonymous redirects, and cross-user Storage metadata pgTAP.
+The vanilla PostgreSQL harness uses a minimal Storage metadata stand-in and
+cannot prove Storage HTTP behavior; CI runs the same policies on real Supabase.
+The hosted checks above remain required after migration and deployment.

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { createClient } from "@/lib/supabase/server";
 import { ApiErrorSchema, FeedRequest, PreferencesRequest, type ApiError } from "../../../specs/api/contracts";
-import { mapMatches, preferenceColumns, PreferencesInput } from "./model";
+import { mapMatches, mergeQueryWithChips, preferenceColumns, PreferencesInput, type MatchingChips } from "./model";
 type Client = Awaited<ReturnType<typeof createClient>>;
 export class JobError extends Error {
   constructor(public code: ApiError["code"], message: string, public status: number) { super(message); }
@@ -50,13 +50,33 @@ export async function savePreferences(client: Client, userId: string, input: unk
   dbError(result.error);
   return PreferencesRequest.parse(result.data);
 }
+const ApprovedChips = z.object({ normalized_profile_json: z.object({ chips: z.object({ titles: z.array(z.string()).max(20), skills: z.array(z.string()).max(100) }).passthrough() }).passthrough() });
+/**
+ * Confirmed chips from the newest resume on this profile, only when its latest version has
+ * "Use for matching" on (resume_versions.is_user_approved). Session client + explicit user_id: RLS-scoped.
+ */
+export async function approvedResumeChips(client: Client, userId: string, profileId: string): Promise<MatchingChips | null> {
+  const resume = await client.from("resumes").select("id").eq("user_id", userId).eq("candidate_profile_id", profileId).eq("parse_status", "completed").order("created_at", { ascending: false }).order("id").limit(1).maybeSingle();
+  dbError(resume.error);
+  const resumeId = (resume.data as { id?: unknown } | null)?.id;
+  if (typeof resumeId !== "string") return null;
+  const version = await client.from("resume_versions").select("is_user_approved,normalized_profile_json").eq("user_id", userId).eq("base_resume_id", resumeId).order("created_at", { ascending: false }).order("id").limit(1).maybeSingle();
+  dbError(version.error);
+  const row = version.data as { is_user_approved?: unknown } | null;
+  if (!row || row.is_user_approved !== true) return null;
+  const parsed = ApprovedChips.safeParse(row);
+  if (!parsed.success) return null;
+  const { titles, skills } = parsed.data.normalized_profile_json.chips;
+  return titles.length || skills.length ? { titles, skills } : null;
+}
 export async function findMatches(client: Client, userId: string, input: unknown) {
   const values = FeedRequest.parse(input);
   await ensurePreferences(client, userId, values.candidate_profile_id);
+  const chips = await approvedResumeChips(client, userId, values.candidate_profile_id);
   const result = await client.rpc("match_jobs_hybrid", {
-    p_candidate_profile_id: values.candidate_profile_id, p_query_text: values.query,
+    p_candidate_profile_id: values.candidate_profile_id, p_query_text: mergeQueryWithChips(values.query, chips),
     p_include_stretch_exceptions: values.include_stretch_exceptions, p_rrf_k: 60, p_top_n: values.limit,
   });
   dbError(result.error);
-  return mapMatches(result.data);
+  return mapMatches(result.data, chips);
 }
