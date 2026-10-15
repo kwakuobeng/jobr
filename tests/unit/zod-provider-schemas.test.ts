@@ -34,8 +34,8 @@ describe("Tier-1 provider schemas against Gemini Packet #1 fixtures", () => {
     const gh = GreenhouseBoardResponseSchema.parse(fixtures["greenhouse"]);
     expect(gh.jobs.length).toBeGreaterThanOrEqual(2);
     expect(gh.jobs.some((j) => (j.pay_input_ranges?.length ?? 0) > 0)).toBe(true);
-    // normalizeGreenhouseJob (m1_1_core) does not emit rawJson; check every other field conforms.
-    const CoreShape = RawJobPayloadSchema.omit({ rawJson: true }).strict();
+    // Core normalization must satisfy the complete ingestion contract.
+    const CoreShape = RawJobPayloadSchema.strict();
     for (const job of gh.jobs) {
       const item = {
         ...job,

@@ -29,8 +29,6 @@ export const RawJobPayloadSchema = z.object({
     "smartrecruiters",
     "recruitee",
     "usajobs",
-    "jobspipe",
-    "jsearch",
     "user_url",
   ]),
   sourceTenantSlug: z.string().optional(),

@@ -1,3 +1,4 @@
+import { RawJobPayloadSchema } from "../../specs/ingestion/zod_provider_schemas";
 import crypto from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
@@ -223,6 +224,7 @@ describe("normalizeGreenhouseJob", () => {
       rawEmployerName: "Acme Inc",
       rawLocations: ["Chicago, IL"],
       updatedAt: item.updated_at,
+      rawJson: item,
     });
   });
 
@@ -251,8 +253,9 @@ describe("normalizeGreenhouseJob", () => {
       absolute_url: "https://example.test/1",
     });
     expect(n.rawLocations).toEqual([]);
-    expect(n.rawDescriptionText).toBe("");
+    expect(n.rawDescriptionText).toBe("X");
     expect(n.rawCompensation).toBeUndefined();
+    expect(RawJobPayloadSchema.safeParse(n).success).toBe(true);
   });
 
   it("defaults currency to USD when absent", () => {
