@@ -279,3 +279,40 @@ describe("normalizeGreenhouseJob", () => {
     expect(n.rawCompensation?.minAmount).toBe(0);
   });
 });
+
+describe("computeCanonicalIdentityHash opening identity (QA bug 1)", () => {
+  const o = { provider: "greenhouse", tenant: "acme", externalJobId: "101" };
+  it("keeps the fingerprint form unchanged when no opening is given", () => {
+    const expected = crypto.createHash("sha256").update("emp-1|engineer|remote").digest("hex");
+    expect(computeCanonicalIdentityHash("emp-1", "Engineer", ["Remote"])).toBe(expected);
+  });
+  it("separates distinct openings with identical title and location", () => {
+    const a = computeCanonicalIdentityHash("emp-1", "Engineer", ["Remote"], o);
+    const b = computeCanonicalIdentityHash("emp-1", "Engineer", ["Remote"], { ...o, externalJobId: "102" });
+    expect(a).not.toBe(b);
+    expect(a).not.toBe(computeCanonicalIdentityHash("emp-1", "Engineer", ["Remote"]));
+  });
+  it("separates providers and tenants with the same external id", () => {
+    const a = computeCanonicalIdentityHash("emp-1", "Engineer", ["Remote"], o);
+    expect(computeCanonicalIdentityHash("emp-1", "Engineer", ["Remote"], { ...o, provider: "lever" })).not.toBe(a);
+    expect(computeCanonicalIdentityHash("emp-1", "Engineer", ["Remote"], { ...o, tenant: "other" })).not.toBe(a);
+  });
+  it("binds the requisition id when present", () => {
+    const a = computeCanonicalIdentityHash("emp-1", "Engineer", ["Remote"], { ...o, requisitionId: "R-1" });
+    expect(computeCanonicalIdentityHash("emp-1", "Engineer", ["Remote"], { ...o, requisitionId: "R-2" })).not.toBe(a);
+    expect(computeCanonicalIdentityHash("emp-1", "Engineer", ["Remote"], o)).not.toBe(a);
+  });
+  it("is stable under provider/tenant case, location order and title punctuation", () => {
+    expect(computeCanonicalIdentityHash("emp-1", "Sr. Engineer", ["Remote", "NY"], o)).toBe(
+      computeCanonicalIdentityHash("emp-1", "sr engineer", [" ny", "REMOTE"], { ...o, provider: "Greenhouse", tenant: "ACME" }),
+    );
+  });
+  it("cannot be confused by delimiter injection in ids", () => {
+    const a = computeCanonicalIdentityHash("emp-1", "Engineer", [], { provider: "greenhouse", tenant: "a|b", externalJobId: "c" });
+    const b = computeCanonicalIdentityHash("emp-1", "Engineer", [], { provider: "greenhouse", tenant: "a", externalJobId: "b|c" });
+    expect(a).not.toBe(b);
+  });
+  it("rejects an empty external id", () => {
+    expect(() => computeCanonicalIdentityHash("emp-1", "Engineer", [], { ...o, externalJobId: " " })).toThrow();
+  });
+});

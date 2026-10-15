@@ -228,3 +228,33 @@ describe("four-tier deduplication", () => {
     ).toBe(false);
   });
 });
+
+describe("signed int64 simhash (QA bug 2)", () => {
+  const INT64_MIN = -(1n << 63n), INT64_MAX = (1n << 63n) - 1n;
+  const words = Array.from({ length: 400 }, (_, i) => `token${i}`);
+  it("always fits Postgres BIGINT", () => {
+    for (let i = 0; i < 200; i++) {
+      const h = simhash(words.slice(i, i + 40).join(" "));
+      expect(h >= INT64_MIN && h <= INT64_MAX).toBe(true);
+    }
+  });
+  it("produces high-bit (negative) values for some inputs", () => {
+    const hs = Array.from({ length: 200 }, (_, i) => simhash(words.slice(i, i + 40).join(" ")));
+    expect(hs.some((h) => h < 0n)).toBe(true);
+    expect(hs.some((h) => h >= 0n)).toBe(true);
+  });
+  it("hamming works on signed values, including the sign bit", () => {
+    expect(hamming(-1n, 0n)).toBe(64);
+    expect(hamming(INT64_MIN, 0n)).toBe(1);
+    expect(hamming(INT64_MIN, INT64_MAX)).toBe(64);
+    expect(hamming(-1n, -2n)).toBe(1);
+    expect(hamming(-5n, -5n)).toBe(0);
+  });
+  it("hamming(signed) equals hamming of the unsigned representation", () => {
+    const hs = Array.from({ length: 50 }, (_, i) => simhash(words.slice(i * 3, i * 3 + 30).join(" ")));
+    for (let i = 1; i < hs.length; i++) {
+      const a = hs[i - 1]!, b = hs[i]!;
+      expect(hamming(a, b)).toBe(hamming(BigInt.asUintN(64, a), BigInt.asUintN(64, b)));
+    }
+  });
+});
