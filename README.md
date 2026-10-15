@@ -96,3 +96,24 @@ Use that endpoint to check the local preview after startup. No ATS submission or
 paid data source is added. Supabase integration remains future work; the public
 variable names are documented in `.env.example`. Supply actual values through
 local environment configuration or deployment settings, never committed files.
+
+## Auth (M1)
+
+Email and password are the primary flow at `/sign-up` and `/sign-in`.
+Copy `.env.example` to ignored `.env.local` and supply the public Supabase URL
+and anon key. Only public Supabase configuration is used by this auth layer.
+The signup metadata includes optional `full_name`; migration 0006's existing
+trigger creates `users_profile`. No app-level elevated insert is used.
+
+Set Supabase Auth Site URL to `https://jobr.kwakubobeng.workers.dev` and allow
+`https://jobr.kwakubobeng.workers.dev/auth/callback` plus the callback on your
+local development origin. Confirmation uses PKCE, so open the email link in
+the same browser that initiated signup. `/auth/callback` exchanges the code
+and restores the safe local destination. Protected routes use verified users,
+not unverified session payloads; middleware forwards refreshed cookies to both
+the request and response, including auth redirects. Keep authenticated responses
+uncached on Workers. Sign out is a Server Action (POST with Next's origin check).
+Configure the public build variables before building/deploying to Workers.
+For cloud machines with an installed Chromium, set
+`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium` to run the same Playwright
+smokes without downloading another browser; CI uses Playwright's default binary.
