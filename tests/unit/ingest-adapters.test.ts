@@ -44,6 +44,11 @@ describe("ingestion adapters (fixture-only, injected HTTP)", () => {
     expect(jobs.map(j => j.sourceJobId)).toEqual(["b", "a"]);
     expect(client.mock.calls[1]?.[0]).toContain("offset=1");
   });
+  it("accepts SmartRecruiters postings with an empty department object (live shape)", async () => {
+    const jobs = await fetchBoard({ ...board, ats: "smartrecruiters" }, mockClient({ content: [{ id: "a", name: "Engineer", department: {} }], totalFound: 1 }));
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0]?.department).toBeUndefined();
+  });
   it.each([301, 302, 307, 308, 400, 404])("does not follow/retry HTTP %s", async status => {
     const client = mockClient({}, status);
     await expect(getJson("https://example.com/jobs", 3, client)).rejects.toThrow(`HTTP ${status}`);

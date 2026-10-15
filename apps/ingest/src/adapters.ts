@@ -7,7 +7,7 @@ const GreenhouseResponse = GreenhouseBoardResponseSchema.extend({ jobs: z.array(
 const SmartResponse = z.object({ totalFound: z.number().int().nonnegative(), content: z.array(z.object({
   id: z.string(), name: z.string(), releasedDate: z.string().optional(),
   location: z.object({ city: z.string().optional(), region: z.string().optional(), country: z.string().optional(), remote: z.boolean().optional() }).optional(),
-  department: z.object({ label: z.string() }).optional(), typeOfEmployment: z.object({ label: z.string() }).optional(),
+  department: z.object({ label: z.string().optional() }).optional(), typeOfEmployment: z.object({ label: z.string() }).optional(),
 })) });
 
 const UA = "JobrIngest/0.1 (personal job-search assistant; contact via repo owner)";

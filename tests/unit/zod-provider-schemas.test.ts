@@ -94,3 +94,18 @@ describe("Tier-1 provider schemas against Gemini Packet #1 fixtures", () => {
     expect(AtsSeedRegistrySchema.safeParse(many(base)).success).toBe(true);
   });
 });
+
+describe("live-shape regressions (Mode 3 QA 2026-10-15)", () => {
+  it("Greenhouse accepts explicit nulls for AI disclaimer fields", () => {
+    const gh = GreenhouseBoardResponseSchema.parse(fixtures["greenhouse"]);
+    const job = { ...gh.jobs[0]!, include_ai_disclaimer: null, ai_opt_out_request_url: null };
+    const out = normalizeGreenhousePayload("stripe", "Stripe", "stripe.com", { jobs: [job] });
+    expect(out).toHaveLength(1);
+    expect(RawJobPayloadSchema.safeParse(out[0]).success).toBe(true);
+  });
+  it("Lever accepts workplaceType 'onsite' and maps it to onsite", () => {
+    const lever = LeverPostingsResponseSchema.parse(fixtures["lever"]);
+    const out = normalizeLeverPayload("plaid", "Plaid", "plaid.com", [{ ...lever[0]!, workplaceType: "onsite" }]);
+    expect(out[0]?.rawWorkplaceType).toBe("onsite");
+  });
+});

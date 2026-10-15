@@ -147,3 +147,20 @@ describe("rate limiter", () => {
     expect(() => new TokenBucket(1, 0)).toThrow();
   });
 });
+
+describe("createSafeClient injected resolver", () => {
+  it("still blocks private addresses returned by an injected resolver", async () => {
+    const client = createSafeClient(["example.com"], {
+      resolve: async () => [{ address: "10.0.0.5", family: 4 }],
+    });
+    const err: unknown = await client("https://example.com/x").catch((e: unknown) => e);
+    const chain = [err, (err as { cause?: unknown })?.cause].map((e) => (e instanceof Error ? e.message : ""));
+    expect(chain.some((m) => /Non-public IP address/.test(m))).toBe(true);
+  });
+  it("still enforces the host allowlist with an injected resolver", async () => {
+    const resolve = vi.fn(async () => [{ address: "93.184.216.34", family: 4 }]);
+    const client = createSafeClient(["example.com"], { resolve });
+    await expect(client("https://evil.example.net/x")).rejects.toThrow("Host is not allowlisted");
+    expect(resolve).not.toHaveBeenCalled();
+  });
+});
