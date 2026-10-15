@@ -1,0 +1,424 @@
+{
+  "greenhouse": {
+    "jobs": [
+      {
+        "id": 4918273,
+        "internal_job_id": 991822,
+        "title": "Senior Distributed Systems Engineer",
+        "updated_at": "2026-10-12T15:30:00Z",
+        "first_published": "2026-10-01T12:00:00Z",
+        "requisition_id": "ENG-204",
+        "absolute_url": "https://boards.greenhouse.io/stripe/jobs/4918273",
+        "language": "en",
+        "location": {
+          "name": "San Francisco, CA (Hybrid)"
+        },
+        "metadata": null,
+        "content": "<p>Join our Core Infrastructure group building low-latency distributed storage in Go, Rust, and Kubernetes.</p>",
+        "departments": [
+          {
+            "id": 101,
+            "name": "Core Infrastructure",
+            "parent_id": null,
+            "child_ids": []
+          }
+        ],
+        "offices": [
+          {
+            "id": 201,
+            "name": "San Francisco",
+            "location": "San Francisco, CA, United States",
+            "parent_id": null,
+            "child_ids": []
+          }
+        ],
+        "pay_input_ranges": [
+          {
+            "min_cents": 18500000,
+            "max_cents": 22500000,
+            "currency_type": "USD",
+            "title": "SF/NYC Base Salary Range",
+            "blurb": "Base salary range for Zone A."
+          }
+        ],
+        "include_ai_disclaimer": true,
+        "ai_opt_out_request_url": "https://app.greenhouse.io/job_post/4918273/ai_opt_out",
+        "data_compliance": [
+          {
+            "type": "gdpr",
+            "requires_consent": true,
+            "requires_processing_consent": true,
+            "requires_retention_consent": true,
+            "retention_period": 365
+          }
+        ]
+      },
+      {
+        "id": 4918274,
+        "internal_job_id": 991823,
+        "title": "Staff Security Engineer, Identity",
+        "updated_at": "2026-10-13T09:15:00Z",
+        "first_published": "2026-10-03T10:00:00Z",
+        "requisition_id": "SEC-118",
+        "absolute_url": "https://boards.greenhouse.io/cloudflare/jobs/4918274",
+        "language": "en",
+        "location": {
+          "name": "Remote - US"
+        },
+        "metadata": null,
+        "content": "<p>Architect zero-trust authentication and cryptographic key management services in Go and Rust.</p>",
+        "pay_input_ranges": [
+          {
+            "min_cents": 19500000,
+            "max_cents": 24000000,
+            "currency_type": "USD",
+            "title": "US Remote Base Pay"
+          }
+        ]
+      },
+      {
+        "id": 4918275,
+        "internal_job_id": 991824,
+        "title": "Product Designer, Developer Experience",
+        "updated_at": "2026-10-14T08:00:00Z",
+        "first_published": "2026-10-08T14:00:00Z",
+        "requisition_id": "DES-042",
+        "absolute_url": "https://boards.greenhouse.io/figma/jobs/4918275",
+        "language": "en",
+        "location": {
+          "name": "New York, NY"
+        },
+        "metadata": null,
+        "content": "<p>Design workflows that bridge design systems and production TypeScript codebases.</p>"
+      }
+    ],
+    "meta": {
+      "total": 3
+    }
+  },
+  "ashby": {
+    "apiVersion": "1",
+    "jobs": [
+      {
+        "id": "ashby-linear-001",
+        "title": "Staff Platform Engineer",
+        "location": "San Francisco, CA",
+        "secondaryLocations": [
+          {
+            "location": "New York, NY",
+            "address": {
+              "addressLocality": "New York",
+              "addressRegion": "NY",
+              "addressCountry": "USA"
+            }
+          }
+        ],
+        "department": "Engineering",
+        "team": "Cloud Platform",
+        "isListed": true,
+        "isRemote": true,
+        "workplaceType": "Remote",
+        "descriptionHtml": "<p>Architect multi-region Kubernetes and Postgres clusters.</p>",
+        "descriptionPlain": "Architect multi-region Kubernetes and Postgres clusters.",
+        "publishedAt": "2026-10-10T16:21:55.393+00:00",
+        "employmentType": "FullTime",
+        "address": {
+          "postalAddress": {
+            "addressLocality": "San Francisco",
+            "addressRegion": "California",
+            "addressCountry": "USA"
+          }
+        },
+        "jobUrl": "https://jobs.ashbyhq.com/linear/ashby-linear-001",
+        "applyUrl": "https://jobs.ashbyhq.com/linear/ashby-linear-001/application",
+        "compensation": {
+          "compensationTierSummary": "$190K \u2013 $220K \u2022 0.15% \u2013 0.35% Equity",
+          "scrapeableCompensationSalarySummary": "$190K - $220K",
+          "summaryComponents": [
+            {
+              "compensationType": "Salary",
+              "interval": "1 YEAR",
+              "currencyCode": "USD",
+              "minValue": 190000,
+              "maxValue": 220000
+            },
+            {
+              "compensationType": "EquityPercentage",
+              "interval": "NONE",
+              "currencyCode": null,
+              "minValue": 0.15,
+              "maxValue": 0.35
+            }
+          ]
+        }
+      },
+      {
+        "id": "ashby-supabase-002",
+        "title": "Database Kernel Engineer (PostgreSQL / pgvector)",
+        "location": "Remote",
+        "department": "Database",
+        "team": "Postgres Core",
+        "isListed": true,
+        "isRemote": true,
+        "workplaceType": "Remote",
+        "descriptionHtml": "<p>Work on PostgreSQL 16 extensions, pgvector HNSW indexing, and connection pooling.</p>",
+        "descriptionPlain": "Work on PostgreSQL 16 extensions, pgvector HNSW indexing, and connection pooling.",
+        "publishedAt": "2026-10-11T11:00:00.000+00:00",
+        "employmentType": "FullTime",
+        "jobUrl": "https://jobs.ashbyhq.com/supabase/ashby-supabase-002",
+        "applyUrl": "https://jobs.ashbyhq.com/supabase/ashby-supabase-002/application",
+        "compensation": {
+          "compensationTierSummary": "$180K \u2013 $215K",
+          "scrapeableCompensationSalarySummary": "$180K - $215K",
+          "summaryComponents": [
+            {
+              "compensationType": "Salary",
+              "interval": "1 YEAR",
+              "currencyCode": "USD",
+              "minValue": 180000,
+              "maxValue": 215000
+            }
+          ]
+        }
+      },
+      {
+        "id": "ashby-unlisted-003",
+        "title": "Internal Executive Operations Lead (Unlisted)",
+        "location": "San Francisco, CA",
+        "department": "Operations",
+        "team": "Executive",
+        "isListed": false,
+        "isRemote": false,
+        "workplaceType": "OnSite",
+        "descriptionHtml": "<p>Internal unlisted posting that must be excluded by ingestion filters.</p>",
+        "descriptionPlain": "Internal unlisted posting that must be excluded by ingestion filters.",
+        "publishedAt": "2026-10-12T08:00:00.000+00:00",
+        "employmentType": "FullTime",
+        "jobUrl": "https://jobs.ashbyhq.com/linear/ashby-unlisted-003",
+        "applyUrl": "https://jobs.ashbyhq.com/linear/ashby-unlisted-003/application",
+        "compensation": null
+      }
+    ]
+  },
+  "lever": [
+    {
+      "id": "lever-plaid-901",
+      "text": "Principal Backend Engineer, Payments",
+      "hostedUrl": "https://jobs.lever.co/plaid/lever-plaid-901",
+      "applyUrl": "https://jobs.lever.co/plaid/lever-plaid-901/apply",
+      "createdAt": 1760100000000,
+      "country": "US",
+      "workplaceType": "hybrid",
+      "categories": {
+        "location": "New York, NY",
+        "allLocations": [
+          "New York, NY",
+          "San Francisco, CA"
+        ],
+        "commitment": "Full-time",
+        "team": "Payments",
+        "department": "Engineering"
+      },
+      "descriptionPlain": "Lead our real-time payment ledger architecture using TypeScript, Go, and PostgreSQL.",
+      "lists": [
+        {
+          "text": "Requirements",
+          "content": "<li>6+ years backend distributed systems experience</li><li>Deep PostgreSQL and Kafka expertise</li>"
+        }
+      ],
+      "salaryRange": {
+        "currency": "USD",
+        "interval": "per-year-salary",
+        "min": 195000,
+        "max": 240000
+      }
+    },
+    {
+      "id": "lever-palantir-902",
+      "text": "Forward Deployed Software Engineer",
+      "hostedUrl": "https://jobs.lever.co/palantir/lever-palantir-902",
+      "applyUrl": "https://jobs.lever.co/palantir/lever-palantir-902/apply",
+      "createdAt": 1760200000000,
+      "country": "US",
+      "workplaceType": "on-site",
+      "categories": {
+        "location": "Washington, DC",
+        "allLocations": [
+          "Washington, DC"
+        ],
+        "commitment": "Full-time",
+        "team": "USG",
+        "department": "Engineering"
+      },
+      "descriptionPlain": "Deploy data integration and ontology platforms directly with mission-critical customers.",
+      "lists": [
+        {
+          "text": "Qualifications",
+          "content": "<li>Strong proficiency in TypeScript, Java, Python, or Go</li>"
+        }
+      ],
+      "salaryRange": {
+        "currency": "USD",
+        "interval": "per-year-salary",
+        "min": 150000,
+        "max": 200000
+      }
+    },
+    {
+      "id": "lever-mistral-903",
+      "text": "Research Engineer, Inference Optimization",
+      "hostedUrl": "https://jobs.lever.co/mistral/lever-mistral-903",
+      "applyUrl": "https://jobs.lever.co/mistral/lever-mistral-903/apply",
+      "createdAt": 1760300000000,
+      "country": "US",
+      "workplaceType": "remote",
+      "categories": {
+        "location": "Palo Alto, CA",
+        "allLocations": [
+          "Palo Alto, CA",
+          "Paris, France"
+        ],
+        "commitment": "Full-time",
+        "team": "Inference",
+        "department": "Research"
+      },
+      "descriptionPlain": "Optimize low-latency LLM serving kernels in CUDA, Triton, and Rust."
+    }
+  ],
+  "usajobs": {
+    "LanguageCode": "EN",
+    "SearchResult": {
+      "SearchResultCount": 3,
+      "SearchResultCountAll": 3,
+      "SearchResultItems": [
+        {
+          "MatchedObjectId": "USDS-2026-109482",
+          "MatchedObjectDescriptor": {
+            "PositionID": "USDS-2026-001",
+            "PositionTitle": "IT Specialist (Software Developer - GS-15)",
+            "OrganizationName": "U.S. Digital Service",
+            "DepartmentName": "Executive Office of the President",
+            "PositionURI": "https://www.usajobs.gov/job/812938400",
+            "ApplyURI": [
+              "https://www.usajobs.gov/job/812938400/apply"
+            ],
+            "PositionLocationDisplay": "Anywhere in the U.S. (Remote)",
+            "PositionLocation": [
+              {
+                "LocationName": "Anywhere in the U.S. (Remote)",
+                "CountryCode": "United States"
+              }
+            ],
+            "QualificationSummary": "One year of specialized experience equivalent to GS-14 building cloud-native distributed services.",
+            "UserArea": {
+              "Details": {
+                "JobSummary": "Modernize high-impact federal digital services for millions of veterans and citizens.",
+                "MajorDuties": [
+                  "Lead backend architecture, API reliability, and security compliance."
+                ],
+                "TeleworkEligible": true,
+                "RemoteIndicator": true
+              }
+            },
+            "PositionRemuneration": [
+              {
+                "MinimumRange": "163964.00",
+                "MaximumRange": "191900.00",
+                "RateIntervalCode": "PA",
+                "Description": "Per Year"
+              }
+            ],
+            "PublicationStartDate": "2026-10-05",
+            "ApplicationCloseDate": "2026-11-15"
+          }
+        },
+        {
+          "MatchedObjectId": "CISA-2026-204910",
+          "MatchedObjectDescriptor": {
+            "PositionID": "CISA-2026-002",
+            "PositionTitle": "Cybersecurity Engineering Specialist (GS-14)",
+            "OrganizationName": "Cybersecurity and Infrastructure Security Agency",
+            "DepartmentName": "Department of Homeland Security",
+            "PositionURI": "https://www.usajobs.gov/job/812938401",
+            "ApplyURI": [
+              "https://www.usajobs.gov/job/812938401/apply"
+            ],
+            "PositionLocationDisplay": "Arlington, VA",
+            "PositionLocation": [
+              {
+                "LocationName": "Arlington, VA",
+                "CountryCode": "United States",
+                "CountrySubDivisionCode": "Virginia",
+                "CityName": "Arlington"
+              }
+            ],
+            "QualificationSummary": "Specialized experience in cloud security posture, zero-trust architecture, and vulnerability analysis.",
+            "UserArea": {
+              "Details": {
+                "JobSummary": "Defend critical federal civilian executive branch networks and cloud infrastructure.",
+                "MajorDuties": [
+                  "Conduct threat modeling, incident response, and automated security testing."
+                ],
+                "TeleworkEligible": true,
+                "RemoteIndicator": false
+              }
+            },
+            "PositionRemuneration": [
+              {
+                "MinimumRange": "139395.00",
+                "MaximumRange": "181216.00",
+                "RateIntervalCode": "PA",
+                "Description": "Per Year"
+              }
+            ],
+            "PublicationStartDate": "2026-10-07",
+            "ApplicationCloseDate": "2026-11-01"
+          }
+        },
+        {
+          "MatchedObjectId": "NASA-2026-308115",
+          "MatchedObjectDescriptor": {
+            "PositionID": "NASA-2026-003",
+            "PositionTitle": "Computer Scientist (Data & AI Systems - GS-14)",
+            "OrganizationName": "National Aeronautics and Space Administration",
+            "DepartmentName": "National Aeronautics and Space Administration",
+            "PositionURI": "https://www.usajobs.gov/job/812938402",
+            "ApplyURI": [
+              "https://www.usajobs.gov/job/812938402/apply"
+            ],
+            "PositionLocationDisplay": "Houston, TX",
+            "PositionLocation": [
+              {
+                "LocationName": "Houston, TX",
+                "CountryCode": "United States",
+                "CountrySubDivisionCode": "Texas",
+                "CityName": "Houston"
+              }
+            ],
+            "QualificationSummary": "Experience developing high-reliability data pipelines and machine learning telemetry systems.",
+            "UserArea": {
+              "Details": {
+                "JobSummary": "Build mission telemetry and scientific data processing systems in Python, C++, and PostgreSQL.",
+                "MajorDuties": [
+                  "Design fault-tolerant data ingestion and real-time anomaly detection pipelines."
+                ],
+                "TeleworkEligible": true,
+                "RemoteIndicator": false
+              }
+            },
+            "PositionRemuneration": [
+              {
+                "MinimumRange": "135840.00",
+                "MaximumRange": "176596.00",
+                "RateIntervalCode": "PA",
+                "Description": "Per Year"
+              }
+            ],
+            "PublicationStartDate": "2026-10-09",
+            "ApplicationCloseDate": "2026-11-10"
+          }
+        }
+      ]
+    }
+  }
+}
