@@ -11,6 +11,8 @@ export default async function AuthenticatedLayout({ children }: { children: Reac
   return <div className="mx-auto max-w-5xl p-6">
     <nav aria-label="Account" className="mb-8 flex flex-wrap items-center gap-5">
       <Link href="/app" className="underline focus-visible:outline">Account</Link>
+      <Link href="/matches" className="underline focus-visible:outline">Matches</Link>
+      <Link href="/preferences" className="underline focus-visible:outline">Preferences</Link>
       <form action={signOut}><Button variant="outline">Sign out</Button></form>
     </nav>{children}
   </div>;
