@@ -14,6 +14,7 @@ export const ResumePatch = z.object({
 export const ResumeView = z.object({
   id: z.string().uuid(), original_filename: z.string(), parse_status: z.enum(["pending", "processing", "completed", "failed"]),
   version_id: z.string().uuid().nullable(), chips: Chips.nullable(), use_for_matching: z.boolean(),
+  years_source: z.enum(["explicit", "computed"]).nullable().optional(),
 });
 export type ChipsValue = z.infer<typeof Chips>;
 export type ResumeValue = z.infer<typeof ResumeView>;

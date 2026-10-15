@@ -1,0 +1,14 @@
+BEGIN;
+CREATE EXTENSION IF NOT EXISTS pgtap;
+SELECT plan(7);
+SELECT ok(NOT has_function_privilege('anon', 'public.job_card_meta(uuid[])', 'EXECUTE'), 'anon cannot execute job_card_meta');
+SELECT ok(has_function_privilege('authenticated', 'public.job_card_meta(uuid[])', 'EXECUTE'), 'authenticated can execute job_card_meta');
+SELECT ok(NOT prosecdef, 'job_card_meta is security invoker') FROM pg_proc WHERE oid = 'public.job_card_meta(uuid[])'::regprocedure;
+SELECT has_column('public', 'job_preferences', 'home_zip', 'home_zip column added');
+SELECT col_has_check('public', 'job_preferences', 'home_zip', 'home_zip has a ZIP CHECK');
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated"}', true);
+SELECT throws_ok($$ SELECT * FROM public.job_card_meta(array_fill(gen_random_uuid(), ARRAY[51])) $$, '22023', NULL, 'more than 50 ids rejected');
+SELECT is((SELECT count(*)::int FROM public.job_card_meta(ARRAY[gen_random_uuid()])), 0, 'unknown ids return nothing');
+SELECT * FROM finish();
+ROLLBACK;
