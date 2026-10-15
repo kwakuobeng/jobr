@@ -22,7 +22,7 @@ export function PreferencesForm() {
     try {
       const input = PreferencesInput.parse({ ...values,
         allowed_workplace_types: form.getAll("workplace"), allowed_employment_types: form.getAll("employment"),
-        hard_min_annual_salary_usd: number("salary"), max_commute_miles: number("commute"),
+        hard_min_annual_salary_usd: number("salary"), max_commute_miles: number("commute"), home_zip: String(form.get("home_zip") ?? "").trim() || null,
         allow_undisclosed_salary: form.has("undisclosed"), requires_visa_sponsorship: form.has("visa"),
         excluded_tech_slugs: String(form.get("tech") ?? "").split(",").map((slug) => slug.trim()).filter(Boolean),
       });
@@ -42,7 +42,9 @@ export function PreferencesForm() {
       <label className="block">Minimum annual salary (USD, optional)<input className={inputClass} type="number" min="0" max="2147483647" step="1" name="salary" defaultValue={values.hard_min_annual_salary_usd ?? ""} /></label>
       <label className="flex gap-2"><input name="undisclosed" type="checkbox" defaultChecked={values.allow_undisclosed_salary} />Allow undisclosed salary</label>
       <label className="flex gap-2"><input name="visa" type="checkbox" defaultChecked={values.requires_visa_sponsorship} />Require visa sponsorship</label>
-      <label className="block">Maximum commute (miles, optional)<input className={inputClass} type="number" min="0" max="500" step="1" name="commute" defaultValue={values.max_commute_miles ?? ""} /></label>
+      <label className="block">Home ZIP code (optional)<input className={inputClass} name="home_zip" inputMode="numeric" pattern="[0-9]{5}" maxLength={5} defaultValue={values.home_zip ?? ""} /></label>
+      <p className="text-sm text-slate-600">With a ZIP and a maximum radius, hybrid and onsite roles farther away are hidden. Fully remote roles are never limited by distance. Roles without stored coordinates are kept and shown as &quot;Distance unknown&quot; rather than dropped. ZIP locations are approximate (offline ZIP-prefix lookup, about ±30 miles).</p>
+      <label className="block">Maximum radius for hybrid/onsite roles (miles, optional)<input className={inputClass} type="number" min="0" max="500" step="1" name="commute" defaultValue={values.max_commute_miles ?? ""} /></label>
       <p className="text-sm">Commute filtering also requires a saved home location. This form does not set your home location.</p>
       <label className="block">Excluded technology slugs (comma separated)<input className={inputClass} name="tech" defaultValue={values.excluded_tech_slugs.join(", ")} /></label>
       <Button type="submit">{saving ? "Saving…" : "Save preferences"}</Button>

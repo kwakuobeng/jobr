@@ -67,13 +67,36 @@ function cleanTitle(text: string): string | null {
   t = hit.replace(/[\s.:;]+$/, "");
   const last = t.split(/\s+/).pop() ?? "";
   if (/s$/i.test(last) && !/^(?:sales|operations|analytics|success|ops|logistics|services|relations|systems)$/i.test(last)) return null; // plural = prose
-  if (t.length < 3 || t.length > 80 || /https?:|@|\d{3}/.test(t) || SENTENCE_RE.test(t) || /^(?:and|with|for|the)\b/i.test(t)) return null;
+  if (t.length < 2 || t.length > 80 || /https?:|@|\d{3}/.test(t) || SENTENCE_RE.test(t) || /^(?:and|with|for|the)\b/i.test(t)) return null;
   // Require title-like casing: most words capitalised (role lines, not prose).
   const words = t.split(/\s+/).filter((w) => /^[A-Za-z]/.test(w) && !/^(?:of|and|&|the|for|in)$/i.test(w));
   if (!words.length || words.filter((w) => /^[A-Z]/.test(w)).length / words.length < 0.75) return null;
   return t;
 }
 
+export const MAX_TITLES = 6; export const MAX_SKILLS = 20;
+const TITLE_SYNONYMS: Array<[RegExp, string]> = [
+  [/\bSr\.?(?=\s|$)/gi, "Senior"], [/\bJr\.?(?=\s|$)/gi, "Junior"], [/\bMgr\.?(?=\s|$)/gi, "Manager"], [/\bDir\.?(?=\s|$)/gi, "Director"],
+  [/\bAssoc\.?(?=\s|$)/gi, "Associate"], [/\bExec\.?(?=\s|$)/gi, "Executive"], [/\bVP\b/g, "Vice President"],
+  [/\bAE\b/g, "Account Executive"], [/\bSDR\b/g, "Sales Development Representative"], [/\bBDR\b/g, "Business Development Representative"],
+  [/\bAM\b/g, "Account Manager"], [/\bCSM\b/g, "Customer Success Manager"], [/\bSE\b/g, "Sales Engineer"], [/\bRevOps\b/gi, "Revenue Operations"],
+];
+export function normalizeTitle(title: string): string {
+  let t = title.replace(/\s+/g, " ").trim();
+  for (const [re, value] of TITLE_SYNONYMS) t = t.replace(re, value);
+  return t.replace(/\s+/g, " ").trim();
+}
+/** Decide a short title list: work titles (most recent first, resumes are reverse-chronological), ranked by frequency, then other candidates. */
+function decideTitles(all: string[], counts: Map<string, number>, workTitles: string[]): string[] {
+  const recency = new Map<string, number>();
+  [...workTitles.filter(Boolean), ...all].forEach((t, i) => { const k = t.toLowerCase(); if (!recency.has(k)) recency.set(k, i); });
+  const unique = [...new Map(all.map((t) => [t.toLowerCase(), t])).values()];
+  const isWork = new Set(workTitles.map((t) => t.toLowerCase()));
+  return unique.sort((a, b) => {
+    const ka = a.toLowerCase(), kb = b.toLowerCase();
+    return Number(isWork.has(kb)) - Number(isWork.has(ka)) || (counts.get(kb) ?? 0) - (counts.get(ka) ?? 0) || (recency.get(ka) ?? 99) - (recency.get(kb) ?? 99);
+  }).slice(0, MAX_TITLES);
+}
 export interface HeuristicResult {
   parser: string;
   chips: ReturnType<typeof Chips.parse>;
@@ -88,14 +111,15 @@ export function suggestChips(raw: string, referenceDate = new Date().toISOString
   const evidence = (line: { id: string; text: string }) => ({ source_line_ids: [line.id], verbatim_quote: line.text, evidence_type: "explicit" as const });
   const usable = lines.filter((l) => l.text.trim().length > 0);
 
-  const extracted = COMPILED.flatMap(({ name, patterns }) => {
-    const line = usable.find((entry) => patterns.some((p) => p.test(entry.text)));
-    return line ? [{ id: name.toLowerCase().replace(/[^a-z0-9+#]+/g, "-"), name, evidence: evidence(line) }] : [];
-  });
+  // Decide: rank skills by how many lines mention them (ties keep lexicon order), keep the top MAX_SKILLS.
+  const extracted = COMPILED.flatMap(({ name, patterns }, order) => {
+    const hits = usable.filter((entry) => patterns.some((p) => p.test(entry.text)));
+    return hits.length ? [{ order, count: hits.length, skill: { id: name.toLowerCase().replace(/[^a-z0-9+#]+/g, "-"), name, evidence: evidence(hits[0]!) } }] : [];
+  }).sort((a, b) => b.count - a.count || a.order - b.order).slice(0, MAX_SKILLS).map((x) => x.skill);
 
   // Walk sections so education dates are not counted as work experience.
   let section = "";
-  const titles: string[] = []; const seenTitles = new Set<string>();
+  const titles: string[] = []; const seenTitles = new Set<string>(); const titleCounts = new Map<string, number>();
   const work: Array<{ id: string; employer: string; title: string; start_date: string; end_date: string | null; is_current: boolean; is_internship: boolean; evidence: ReturnType<typeof evidence> }> = [];
   usable.forEach((line, i) => {
     const text = line.text.trim();
@@ -105,14 +129,14 @@ export function suggestChips(raw: string, referenceDate = new Date().toISOString
     const range = RANGE_RE.exec(text);
     // Title candidates: the headline under the name, role lines (with dates), or short lines in experience.
     const candidate = !isBullet && !section.startsWith("education") && !section.includes("skill") && (range || i < 3 || section === "experience" || section.startsWith("employment") || section === "work history") ? cleanTitle(text) : null;
-    if (candidate && !seenTitles.has(candidate.toLowerCase()) && titles.length < 20) { seenTitles.add(candidate.toLowerCase()); titles.push(candidate); }
+    if (candidate) { const n = normalizeTitle(candidate); const key = n.toLowerCase(); if (!seenTitles.has(key)) { seenTitles.add(key); titles.push(n); } titleCounts.set(key, (titleCounts.get(key) ?? 0) + 1); }
     if (range && !section.startsWith("education") && !isBullet) {
       const start = toIso(range[1]!, false, referenceDate); const current = /^(present|current|now|today)$/i.test(range[2]!.trim());
       const end = current ? null : toIso(range[2]!, true, referenceDate);
       const refMonth = referenceDate.slice(0, 7) + "-01";
       if (start && (current || end) && start <= (end ?? refMonth) && (end ?? refMonth) <= refMonth) {
         const prev = usable[i - 1]?.text.trim() ?? ""; const next = usable[i + 1]?.text.trim() ?? "";
-        const title = candidate ?? cleanTitle(prev) ?? "";
+        const prevTitle = cleanTitle(prev); const title = candidate ? normalizeTitle(candidate) : prevTitle ? normalizeTitle(prevTitle) : "";
         const employerLine = [next, prev].find((l) => l && !RANGE_RE.test(l) && !/^[•·*-]/.test(l) && !cleanTitle(l) && l.length <= 80) ?? "";
         work.push({ id: `work_${work.length + 1}`, employer: employerLine.split(/\s*\|\s*/)[0]!.trim(), title, start_date: start, end_date: end, is_current: current, is_internship: /\bintern(ship)?\b/i.test(text + " " + title), evidence: evidence(line) });
       }
@@ -128,7 +152,7 @@ export function suggestChips(raw: string, referenceDate = new Date().toISOString
   const years = explicitYears ?? computedYears;
   return {
     parser: "local-v2",
-    chips: Chips.parse({ skills: extraction.extracted_skills.map((s) => s.name).slice(0, 100), titles, years }),
+    chips: Chips.parse({ skills: extraction.extracted_skills.map((s) => s.name), titles: decideTitles(titles, titleCounts, work.map((w) => w.title)), years }),
     years_source: explicitYears !== null ? "explicit" : computedYears !== null ? "computed" : null,
     explicit_years: explicitYears,
     computed_years: computedYears,
@@ -143,6 +167,6 @@ export function mergeChips(base: HeuristicResult, ai: { skills: string[]; titles
     for (const v of values.map((x) => x.trim()).filter((x) => x && x.length <= 80)) { const k = v.toLowerCase(); if (!seen.has(k)) { seen.add(k); out.push(v); } }
     return out.slice(0, limit);
   };
-  return Chips.parse({ skills: dedupe([...base.chips.skills, ...ai.skills], 100), titles: dedupe([...base.chips.titles, ...ai.titles], 20), years: base.chips.years });
+  return Chips.parse({ skills: dedupe([...base.chips.skills, ...ai.skills], MAX_SKILLS + 5), titles: dedupe([...base.chips.titles, ...ai.titles.map(normalizeTitle)], MAX_TITLES), years: base.chips.years });
 }
 export { verifyEvidence };

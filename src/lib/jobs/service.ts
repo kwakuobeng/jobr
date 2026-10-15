@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { createClient } from "@/lib/supabase/server";
 import { ApiErrorSchema, FeedRequest, PreferencesRequest, type ApiError } from "../../../specs/api/contracts";
-import { mapMatches, mergeQueryWithChips, preferenceColumns, PreferencesInput, type MatchingChips } from "./model";
+import { mapMatches, mergeQueryWithChips, preferenceColumns, PreferencesInput, jobRegion, sortMatches, titleMatches, usOrRemote, zipToPoint, type MatchingChips } from "./model";
 type Client = Awaited<ReturnType<typeof createClient>>;
 export class JobError extends Error {
   constructor(public code: ApiError["code"], message: string, public status: number) { super(message); }
@@ -46,7 +46,13 @@ export async function ensurePreferences(client: Client, userId: string, profileI
 export async function savePreferences(client: Client, userId: string, input: unknown) {
   const values = PreferencesInput.parse(input);
   await ensurePreferences(client, userId, values.candidate_profile_id);
-  const result = await client.from("job_preferences").update(values).eq("candidate_profile_id", values.candidate_profile_id).eq("user_id", userId).select(preferenceColumns).single();
+  let home_geo_point: string | null = null;
+  if (values.home_zip) {
+    const point = zipToPoint(values.home_zip);
+    if (!point) throw new JobError("INVALID_INPUT", "That ZIP code is not in the offline lookup. Check it, or leave it blank.", 400);
+    home_geo_point = `SRID=4326;POINT(${point[1]} ${point[0]})`;
+  }
+  const result = await client.from("job_preferences").update("home_zip" in values ? { ...values, home_geo_point } : values).eq("candidate_profile_id", values.candidate_profile_id).eq("user_id", userId).select(preferenceColumns).single();
   dbError(result.error);
   return PreferencesRequest.parse(result.data);
 }
@@ -71,12 +77,32 @@ export async function approvedResumeChips(client: Client, userId: string, profil
 }
 export async function findMatches(client: Client, userId: string, input: unknown) {
   const values = FeedRequest.parse(input);
-  await ensurePreferences(client, userId, values.candidate_profile_id);
+  const prefs = await ensurePreferences(client, userId, values.candidate_profile_id);
   const chips = await approvedResumeChips(client, userId, values.candidate_profile_id);
+  const region = values.region ?? "all";
+  const filtering = Boolean(values.title_keywords?.length) || values.us_or_remote_only === true || region !== "all";
+  const sorting = (values.sort ?? "best") !== "best";
   const result = await client.rpc("match_jobs_hybrid", {
     p_candidate_profile_id: values.candidate_profile_id, p_query_text: mergeQueryWithChips(values.query, chips),
-    p_include_stretch_exceptions: values.include_stretch_exceptions, p_rrf_k: 60, p_top_n: values.limit,
+    // Over-fetch the RPC maximum when filtering/sorting so the requested page is drawn from the best 50.
+    p_include_stretch_exceptions: values.include_stretch_exceptions, p_rrf_k: 60, p_top_n: filtering || sorting ? 50 : values.limit,
   });
   dbError(result.error);
-  return mapMatches(result.data, chips);
+  // Filters run after chip widening, so resume chips can never override the title, US/remote or region filter.
+  let rows = z.array(z.object({ canonical_job_id: z.string(), title: z.string(), workplace_type: z.string().nullish(), locations_json: z.unknown().optional(), location_label: z.string().nullish() }).passthrough()).parse(result.data)
+    .filter((row) => titleMatches(row.title, values.title_keywords) && (!values.us_or_remote_only || usOrRemote(row)) && (region === "all" || jobRegion(row) === region));
+  // Card metadata (posted date, coordinates) from 0008; degrade gracefully if it is not applied yet.
+  if (rows.length) {
+    const meta = await client.rpc("job_card_meta", { p_job_ids: rows.map((r) => r.canonical_job_id) });
+    if (!meta.error && Array.isArray(meta.data)) {
+      const byId = new Map((meta.data as Array<Record<string, unknown>>).map((m) => [m.canonical_job_id, m]));
+      rows = rows.map((r) => { const m = byId.get(r.canonical_job_id); return m ? { ...r, original_published_at: m.original_published_at ?? null, first_discovered_at: m.first_discovered_at ?? null, latitude: m.latitude ?? null, longitude: m.longitude ?? null } : r; });
+    }
+  }
+  const originZip = values.sort_zip ?? prefs.home_zip ?? null; const originPoint = originZip ? zipToPoint(originZip) : null;
+  const mapped = mapMatches(rows, chips, {
+    query: values.query, title_keywords: values.title_keywords, salary_floor: prefs.hard_min_annual_salary_usd,
+    allowed_workplaces: prefs.allowed_workplace_types, origin: originZip && originPoint ? { zip: originZip, point: originPoint } : null,
+  });
+  return sortMatches(mapped, values.sort ?? "best", values.workplace_order).slice(0, values.limit);
 }

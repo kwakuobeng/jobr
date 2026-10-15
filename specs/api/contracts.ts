@@ -86,6 +86,8 @@ export const PreferencesRequest = z
     allow_undisclosed_salary: z.boolean(),
     requires_visa_sponsorship: z.boolean(),
     max_commute_miles: z.number().nonnegative().nullable(),
+    // US ZIP for the commute radius (0008). Radius applies only to hybrid/onsite roles; remote is exempt.
+    home_zip: z.string().regex(/^\d{5}$/).nullable().optional(),
   })
   .strict();
 export const FeedRequest = z
@@ -94,6 +96,13 @@ export const FeedRequest = z
     query: z.string().max(1000),
     include_stretch_exceptions: z.boolean(),
     limit: z.number().int().min(1).max(50),
+    // Session-scoped refinements (not persisted): title-only keyword filter and a US/Remote location filter.
+    title_keywords: z.array(z.string().trim().min(1).max(80)).max(10).optional(),
+    us_or_remote_only: z.boolean().optional(),
+    region: z.enum(["all", "us", "non_us", "unknown"]).optional(),
+    sort: z.enum(["best", "workplace", "distance", "compensation", "newest"]).optional(),
+    workplace_order: z.array(z.enum(["Remote", "Hybrid", "Onsite"])).max(3).optional(),
+    sort_zip: z.string().regex(/^\d{5}$/).optional(),
   })
   .strict();
 export const ExclusionTestResponse = z

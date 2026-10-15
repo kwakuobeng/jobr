@@ -8,8 +8,13 @@ const REF = "2026-10-15";
 describe("heuristic parser v2 on a synthetic sales/analyst resume", () => {
   const result = suggestChips(raw, REF);
   it("finds a broad, de-duplicated set of grounded skills", () => {
-    const expected = ["Salesforce", "HubSpot", "Outreach", "Gong", "LinkedIn Sales Navigator", "ZoomInfo", "MEDDIC", "Challenger Sale", "SQL", "Excel", "Google Sheets", "Tableau", "Power BI", "Looker", "Python", "Snowflake", "dbt", "Supabase", "Next.js", "TypeScript", "Cloudflare", "Negotiation", "Account management", "Forecasting", "Pipeline management", "Quota attainment", "Revenue operations"];
+    const expected = ["Salesforce", "HubSpot", "Outreach", "Gong", "LinkedIn Sales Navigator", "ZoomInfo", "MEDDIC", "Challenger Sale", "SQL", "Tableau", "Negotiation", "Account management", "Forecasting", "Pipeline management", "Quota attainment"];
     expect(result.chips.skills).toEqual(expect.arrayContaining(expected));
+    // Decides a capped set: most-mentioned first (Forecasting and Tableau appear on two lines).
+    expect(result.chips.skills).toHaveLength(20); expect(result.chips.skills.slice(0, 2)).toEqual(["Forecasting", "Tableau"]);
+    // Below the cap, the full lexicon still detects the data/tech stack.
+    const all = suggestChips(raw.split("\n").filter((l) => /^(Data|Build):/.test(l)).join("\n"), REF).chips.skills;
+    expect(all).toEqual(expect.arrayContaining(["Excel", "Google Sheets", "Power BI", "Looker", "Python", "Snowflake", "dbt", "Supabase", "Next.js", "TypeScript", "Cloudflare"]));
     const lower = result.chips.skills.map((s) => s.toLowerCase());
     expect(new Set(lower).size).toBe(lower.length);
     expect(result.chips.skills).not.toContain("R"); expect(result.chips.skills).not.toContain("Go");
@@ -38,10 +43,22 @@ describe("heuristic parser v2 on a synthetic sales/analyst resume", () => {
   it("merges AI chips case-insensitively", () => {
     const merged = mergeChips(result, { skills: ["salesforce", "Clari"], titles: ["sales analyst", "RevOps Analyst"] });
     expect(merged.skills.filter((s) => s.toLowerCase() === "salesforce")).toHaveLength(1);
-    expect(merged.skills).toContain("Clari"); expect(merged.titles).toContain("RevOps Analyst");
+    expect(merged.skills).toContain("Clari"); expect(merged.titles).toContain("Revenue Operations Analyst");
   });
 });
 
+describe("title decisions", () => {
+  it("normalizes synonyms and caps to the most recent/frequent titles", async () => {
+    const { normalizeTitle, MAX_TITLES } = await import("@/lib/resume-intake/heuristic");
+    expect(normalizeTitle("Sr. AE")).toBe("Senior Account Executive");
+    expect(normalizeTitle("BDR")).toBe("Business Development Representative");
+    const text = ["Sr. AE   Jan 2024 - Present", "Acme | Remote", "AE   Jan 2022 - Dec 2023", "Beta | Remote", "Senior Account Executive   Jan 2021 - Dec 2021", "Gamma | Remote", "SDR   Jan 2019 - Dec 2020", "Delta | Remote"].join("\n");
+    const r = suggestChips(text, REF);
+    expect(r.chips.titles[0]).toBe("Senior Account Executive");
+    expect(r.chips.titles).toEqual(["Senior Account Executive", "Account Executive", "Sales Development Representative"]);
+    expect(r.chips.titles.length).toBeLessThanOrEqual(MAX_TITLES);
+  });
+});
 describe("optional AI parse", () => {
   const lineOf = (text: string) => `line_${String(raw.split("\n").indexOf(text) + 1).padStart(3, "0")}`;
   const good = {
@@ -79,7 +96,7 @@ describe("optional AI parse", () => {
     const spy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("nope", { status: 500 }));
     const result = await parseResumeText(raw, REF);
     expect(result.ai).toBeNull(); expect(result.ai_error).toBe("Error"); expect(result.parser).toBe("local-v2");
-    expect(result.chips.skills.length).toBeGreaterThan(20);
+    expect(result.chips.skills.length).toBe(20);
     spy.mockRestore(); vi.unstubAllEnvs();
   });
 });
