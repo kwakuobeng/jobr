@@ -23,6 +23,10 @@ SELECT throws_ok($$INSERT INTO storage.objects(bucket_id,name) VALUES ('resumes'
 SELECT throws_ok($$UPDATE storage.objects SET name='bbbbbbbb-0000-4000-8000-000000000002/moved/source.pdf' WHERE name='aaaaaaaa-0000-4000-8000-000000000001/new/source.pdf'$$, '42501', NULL, 'cannot rename own object into another namespace');
 WITH changed AS (UPDATE storage.objects SET name='aaaaaaaa-0000-4000-8000-000000000001/stolen/source.docx' WHERE name='bbbbbbbb-0000-4000-8000-000000000002/resume-b/source.docx' RETURNING 1)
 SELECT is((SELECT count(*)::int FROM changed), 0, 'cannot update another user object');
+-- Modern Storage blocks direct SQL DELETE before RLS. These rolled-back
+-- metadata fixtures opt in to SQL deletion only to test the DELETE policy.
+-- Production deletes continue through the Storage API; RLS stays enabled.
+SET LOCAL storage.allow_delete_query = 'true';
 WITH changed AS (DELETE FROM storage.objects WHERE name='bbbbbbbb-0000-4000-8000-000000000002/resume-b/source.docx' RETURNING 1)
 SELECT is((SELECT count(*)::int FROM changed), 0, 'cannot delete another user object');
 SELECT lives_ok($$DELETE FROM storage.objects WHERE name='aaaaaaaa-0000-4000-8000-000000000001/new/source.pdf'$$, 'can delete own object');
