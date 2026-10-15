@@ -15,5 +15,5 @@ export function safeNext(value: unknown, fallback = "/app"): string {
 }
 
 export function isProtectedPath(path: string) {
-  return ["/app", "/matches", "/preferences"].some((root) => path === root || path.startsWith(root + "/"));
+  return ["/app", "/matches", "/preferences", "/resume"].some((root) => path === root || path.startsWith(root + "/"));
 }

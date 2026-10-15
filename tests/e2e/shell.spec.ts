@@ -19,3 +19,10 @@ test("anonymous protected routes redirect to sign-in", async ({ page }) => {
   await expect(page).toHaveURL(/\/sign-in\?next=/);
   await expect(page.getByRole("heading", { name: "Sign in to Jobr" })).toBeVisible();
 });
+
+
+test("anonymous resume route redirects to sign-in", async ({ page }) => {
+  await page.goto("/resume");
+  await expect(page).toHaveURL(/\/sign-in\?next=%2Fresume/);
+  await expect(page.getByRole("heading", { name: "Sign in to Jobr" })).toBeVisible();
+});

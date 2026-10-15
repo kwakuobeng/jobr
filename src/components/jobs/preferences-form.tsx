@@ -33,6 +33,7 @@ export function PreferencesForm() {
   }
   const inputClass = "block w-full max-w-md rounded border border-slate-400 p-2 focus-visible:outline focus-visible:outline-2";
   return <main className="space-y-5"><h1 className="text-2xl font-semibold">Preferences</h1>
+    <p>Review your <a href="/resume" className="underline focus-visible:outline">resume suggestions</a>, or set your job filters below.</p>
     <p role="status">{status}</p>{error && <p role="alert" className="text-red-800">{error}</p>}
     {!values && error && <Button onClick={() => window.location.reload()}>Retry loading preferences</Button>}
     {values && <form onSubmit={save} className="space-y-5"><fieldset disabled={saving} className="space-y-5"><legend className="sr-only">Job hard filters</legend>

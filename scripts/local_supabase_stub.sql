@@ -42,3 +42,18 @@ GRANT USAGE ON SCHEMA extensions TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT EXECUTE ON FUNCTIONS TO anon, authenticated, service_role;
+
+-- Storage metadata stand-in ONLY for the disposable vanilla PostgreSQL harness.
+-- Real Supabase supplies these tables and enforces upload MIME/size separately.
+CREATE SCHEMA IF NOT EXISTS storage;
+GRANT USAGE ON SCHEMA storage TO anon, authenticated, service_role;
+CREATE TABLE IF NOT EXISTS storage.buckets (
+  id TEXT PRIMARY KEY, name TEXT NOT NULL UNIQUE, public BOOLEAN NOT NULL DEFAULT false,
+  file_size_limit BIGINT, allowed_mime_types TEXT[]
+);
+CREATE TABLE IF NOT EXISTS storage.objects (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(), bucket_id TEXT REFERENCES storage.buckets(id),
+  name TEXT NOT NULL, UNIQUE (bucket_id, name)
+);
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+GRANT SELECT, INSERT, UPDATE, DELETE ON storage.objects TO anon, authenticated;
