@@ -62,7 +62,7 @@ export function normalizeGreenhouseJob(
     rawDescriptionText: (item.content ?? "")
       .replace(/<[^>]+>/g, " ")
       .replace(/\s+/g, " ")
-      .trim(),
+      .trim() || item.title,
     rawLocations: item.location?.name ? [item.location.name] : [],
     rawCompensation: firstPay
       ? {
@@ -78,6 +78,7 @@ export function normalizeGreenhouseJob(
               : undefined,
         }
       : undefined,
+    rawJson: { ...item },
     updatedAt: item.updated_at,
   };
 }

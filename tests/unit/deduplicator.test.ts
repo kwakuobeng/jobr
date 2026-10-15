@@ -34,7 +34,7 @@ describe("four-tier deduplication", () => {
       one.state,
       {
         ...job,
-        sourceProvider: "jobspipe",
+        sourceProvider: "lever",
         applyUrl: job.applyUrl + "?utm_source=feed",
       },
       "e",
