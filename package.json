@@ -15,7 +15,10 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:live": "vitest run tests/live",
-    "test:db:supabase": "supabase db reset --local && supabase test db"
+    "test:db:supabase": "supabase db reset --local && supabase test db",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.3",
@@ -32,6 +35,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.7",
+    "@opennextjs/cloudflare": "^1.20.11",
     "@playwright/test": "^1.56.1",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^20.19.43",
@@ -46,6 +50,7 @@
     "tsx": "4.20.6",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.71.2",
-    "vitest": "4.0.18"
+    "vitest": "4.0.18",
+    "wrangler": "^4.151.0"
   }
 }

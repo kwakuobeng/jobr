@@ -80,3 +80,19 @@ closed schemas, tool isolation and deterministic validation are defense layers; 
 prove a model cannot hallucinate. Valid citation text does not prove that a paraphrase is
 entailed by it. Human review is required before authorizing factual answers or submission.
 No live model execution or automatic application submission is implemented in M1.1.
+
+## Cloudflare Workers
+
+Use Node 24 and pnpm 11.25.0. Install with `pnpm install --frozen-lockfile`.
+`pnpm build` builds Next.js; `pnpm exec opennextjs-cloudflare build` produces
+`.open-next/worker.js` and assets for the `jobr` Worker with `nodejs_compat`.
+
+- `pnpm preview`: build and run the Worker locally through Wrangler.
+- `pnpm deploy`: build and deploy to Cloudflare (requires Cloudflare account access).
+- `pnpm cf-typegen`: regenerate ignored `cloudflare-env.d.ts` bindings.
+
+The placeholder home page remains at `/`; `GET /api/health` returns `{"ok":true}`.
+Use that endpoint to check the local preview after startup. No ATS submission or
+paid data source is added. Supabase integration remains future work; the public
+variable names are documented in `.env.example`. Supply actual values through
+local environment configuration or deployment settings, never committed files.
