@@ -4,6 +4,10 @@
 BEGIN;
 SELECT plan(16);
 
+-- Isolation: hide any pre-existing jobs (e.g. hosted QA/prototype rows) for the life of this
+-- transaction; Stage 1 only admits status = 'active'. Rolled back with the test.
+UPDATE public.canonical_jobs SET status = 'closed' WHERE status = 'active';
+
 -- 1. Seed two authenticated users in auth.users
 INSERT INTO auth.users (id, email)
 VALUES
@@ -13,7 +17,8 @@ VALUES
 INSERT INTO public.users_profile (id, email, full_name)
 VALUES
   ('a1111111-1111-1111-1111-111111111111', 'alice@jobr.test', 'Alice Engineer'),
-  ('b2222222-2222-2222-2222-222222222222', 'bob@jobr.test', 'Bob Engineer');
+  ('b2222222-2222-2222-2222-222222222222', 'bob@jobr.test', 'Bob Engineer')
+ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, full_name = EXCLUDED.full_name; -- 0006 trigger may have created it
 
 -- 2. Seed Alice's candidate profile and hard preferences
 INSERT INTO public.candidate_profiles (

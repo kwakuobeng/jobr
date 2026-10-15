@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS auth.users (
   email TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+-- Hosted auth.users carries raw_user_meta_data; the 0006 signup trigger reads it.
+ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS raw_user_meta_data JSONB NOT NULL DEFAULT '{}'::jsonb;
 
 -- Same semantics as Supabase's auth.uid(): read `sub` from the request JWT claims GUC.
 CREATE OR REPLACE FUNCTION auth.uid() RETURNS UUID

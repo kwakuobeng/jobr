@@ -61,7 +61,8 @@ SELECT 'cccccccc-0000-4000-8000-000000000001', id, '1', 'https://example.test/1'
 CREATE FUNCTION tests.seed_user(uid uuid, tag text) RETURNS void LANGUAGE plpgsql AS $$
 DECLARE cp uuid; rs uuid; rv uuid; me uuid; ap uuid; job uuid := 'cccccccc-0000-4000-8000-000000000001';
 BEGIN
-  INSERT INTO public.users_profile (id, email) VALUES (uid, tag || '@test.local');
+  INSERT INTO public.users_profile (id, email) VALUES (uid, tag || '@test.local')
+    ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email; -- 0006 trigger may have created it
   INSERT INTO public.candidate_profiles (user_id) VALUES (uid) RETURNING id INTO cp;
   INSERT INTO public.resumes (user_id, candidate_profile_id, original_filename, mime_type, storage_bucket_path,
     file_sha256, file_size_bytes, raw_extracted_text)

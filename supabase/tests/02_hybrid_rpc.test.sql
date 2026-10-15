@@ -5,7 +5,7 @@ SELECT ok(NOT has_function_privilege('anon', 'public.match_jobs_hybrid(uuid,text
 SELECT ok(has_function_privilege('authenticated', 'public.match_jobs_hybrid(uuid,text,boolean,integer,integer)', 'EXECUTE'), 'authenticated can execute hybrid RPC');
 SELECT ok(NOT prosecdef, 'hybrid RPC uses security invoker') FROM pg_proc WHERE oid = 'public.match_jobs_hybrid(uuid,text,boolean,integer,integer)'::regprocedure;
 INSERT INTO auth.users(id, email) VALUES ('11111111-1111-4111-8111-111111111111', 'rpc@jobr.test');
-INSERT INTO public.users_profile(id, email) VALUES ('11111111-1111-4111-8111-111111111111', 'rpc@jobr.test');
+INSERT INTO public.users_profile(id, email) VALUES ('11111111-1111-4111-8111-111111111111', 'rpc@jobr.test') ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email; -- 0006 trigger may have created it
 INSERT INTO public.candidate_profiles(id,user_id) VALUES ('33333333-3333-4333-8333-333333333333','11111111-1111-4111-8111-111111111111');
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated"}', true);

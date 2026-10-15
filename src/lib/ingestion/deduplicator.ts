@@ -24,6 +24,7 @@ export function jaccard(a: string, b: string): number {
   const intersection = [...x].filter((t) => y.has(t)).length;
   return intersection / (x.size + y.size - intersection);
 }
+/** 64-bit simhash as a SIGNED int64, so it fits Postgres BIGINT (canonical_jobs.description_simhash). */
 export function simhash(text: string): bigint {
   const sums = Array<number>(64).fill(0);
   for (const token of tokens(text)) {
@@ -33,13 +34,17 @@ export function simhash(text: string): bigint {
     for (let bit = 0; bit < 64; bit++)
       sums[bit] = sums[bit]! + (hash & (1n << BigInt(bit)) ? 1 : -1);
   }
-  return sums.reduce(
-    (hash, count, bit) => (count > 0 ? hash | (1n << BigInt(bit)) : hash),
-    0n,
+  return BigInt.asIntN(
+    64,
+    sums.reduce(
+      (hash, count, bit) => (count > 0 ? hash | (1n << BigInt(bit)) : hash),
+      0n,
+    ),
   );
 }
 export function hamming(a: bigint, b: bigint): number {
-  let value = a ^ b,
+  // Compare as unsigned 64-bit: signed (negative) inputs would otherwise never reach 0 below.
+  let value = BigInt.asUintN(64, a ^ b),
     count = 0;
   while (value) {
     count++;
