@@ -59,6 +59,13 @@ export function ResumeStudio() {
     catch (err) { setError(message(err)); setStatus("Upload failed. Reload to check status, or retry."); }
     finally { setBusy(false); }
   }
+  async function reparse() {
+    if (!resume || busy) return;
+    setBusy(true); setError(""); setStatus("Re-parsing resume…");
+    try { apply(ResumeView.parse(await fetch("/api/resume/reparse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ resume_id: resume.id }) }).then(readJson))); setStatus("Re-parsed. Review the new suggestions; unsaved edits were replaced."); }
+    catch (err) { setError(message(err)); setStatus(""); }
+    finally { setBusy(false); }
+  }
   function drop(event: DragEvent<HTMLDivElement>) { event.preventDefault(); const file = event.dataTransfer.files[0]; if (file) void upload(file); }
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); if (!resume?.version_id) return;
@@ -85,10 +92,10 @@ export function ResumeStudio() {
       <ChipEditor label="Skills" values={chips.skills} maxLength={80} limit={100} onChange={(skills) => setChips({ ...chips, skills })} />
       <ChipEditor label="Titles" values={chips.titles} maxLength={120} limit={20} onChange={(titles) => setChips({ ...chips, titles })} />
       <label className="block">Years of experience (optional)<input className="mt-2 block w-32 rounded border border-slate-400 p-2 focus-visible:outline focus-visible:outline-2" type="number" min="0" max="80" step="0.1" value={chips.years ?? ""} onChange={(event) => setChips({ ...chips, years: event.target.value === "" ? null : Number(event.target.value) })} /></label>
-      <p className="text-sm text-slate-600">Years are read from explicit experience statements, not calculated from employment dates. Review all chips against your original resume before saving.</p>
+      <p className="text-sm text-slate-600">{resume.years_source === "computed" ? "Years were computed from the employment date ranges on your resume (overlaps merged, education excluded) because no explicit statement was found. " : resume.years_source === "explicit" ? "Years were read from an explicit experience statement on your resume. " : ""}Years prefer explicit statements and otherwise are computed from employment dates as a suggestion. Review all chips against your original resume before saving.</p>
       <label className="flex gap-3"><input type="checkbox" checked={approved} onChange={(event) => setApproved(event.target.checked)} />Use for matching</label>
       <p className="text-sm text-slate-600">When on, your saved titles and skills are added to the Matches search to surface related roles. Hard filters from Preferences still apply.</p>
-      <Button type="submit">Save resume changes</Button>
+      <div className="flex flex-wrap gap-3"><Button type="submit">Save resume changes</Button><Button type="button" variant="outline" onClick={() => void reparse()}>Re-parse</Button></div>
     </fieldset></form>}
   </main>;
 }

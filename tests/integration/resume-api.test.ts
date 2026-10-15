@@ -12,6 +12,7 @@ const state = vi.hoisted(() => {
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => state.client }));
 vi.mock("@/lib/jobs/service", async (importOriginal) => ({ ...await importOriginal<typeof import("@/lib/jobs/service")>(), ensurePreferences: state.preferences }));
 vi.mock("@/lib/resume-intake/extract", () => ({ extractResumeText: state.extract }));
+vi.stubEnv("XAI_API_KEY", ""); vi.stubEnv("OPENAI_API_KEY", "");
 import { GET, PATCH, POST } from "@/app/api/resume/route";
 import { readBoundedBody } from "@/lib/resume-intake/service";
 import { JobError } from "@/lib/jobs/service";
