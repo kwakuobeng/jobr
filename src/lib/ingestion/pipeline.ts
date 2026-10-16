@@ -38,16 +38,40 @@ export const QueueMessageSchema = z.object({ sourceId: z.string().uuid() });
 const HOSTS: Record<Provider, string> = {
   greenhouse: "boards-api.greenhouse.io", ashby: "api.ashbyhq.com", lever: "api.lever.co", usajobs: "data.usajobs.gov",
 };
-const MAX_BYTES = 20 * 1024 * 1024;
+const MAX_BYTES = 5 * 1024 * 1024;
 /** fetch-based GET client: HTTPS only, fixed host allowlist, no redirects, size + time limits. */
 export function fetchClient(allowedHosts: readonly string[], fetchImpl: typeof fetch = fetch): HttpClient {
   return async (value, headers = {}) => {
     const url = new URL(value);
-    if (url.protocol !== "https:" || url.username || url.password || !allowedHosts.includes(url.hostname))
+    if (url.protocol !== "https:" || url.username || url.password || (url.port && url.port !== "443") || !allowedHosts.includes(url.hostname))
       throw new Error(`Blocked URL host: ${url.hostname}`);
     const response = await fetchImpl(url.href, { method: "GET", headers, redirect: "manual", signal: AbortSignal.timeout(20_000) });
-    const text = await response.text();
-    if (text.length > MAX_BYTES) throw new Error("Response too large");
+    const declared = Number(response.headers.get("content-length"));
+    if (declared > MAX_BYTES) {
+      await response.body?.cancel();
+      throw new Error("Response too large");
+    }
+    const reader = response.body?.getReader();
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    if (reader) {
+      try {
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          size += value.byteLength;
+          if (size > MAX_BYTES) {
+            await reader.cancel();
+            throw new Error("Response too large");
+          }
+          chunks.push(value);
+        }
+      } finally { reader.releaseLock(); }
+    }
+    const bytes = new Uint8Array(size);
+    let offset = 0;
+    for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+    const text = new TextDecoder().decode(bytes);
     const outHeaders: Record<string, string> = {};
     response.headers.forEach((v, k) => { outHeaders[k] = v; });
     return { status: response.status, headers: outHeaders, text };
@@ -115,9 +139,20 @@ export async function toBatchRow(job: RawJobPayload): Promise<BatchRow> {
 }
 
 /** Minimal slice of supabase-js used here (service-role client). */
+export interface DbResult { data: unknown; error: { message: string } | null }
+export interface DbQuery extends PromiseLike<DbResult> {
+  select(columns: string): DbQuery;
+  eq(column: string, value: unknown): DbQuery;
+  is(column: string, value: null): DbQuery;
+  order(column: string, options: { ascending: boolean }): DbQuery;
+  limit(count: number): DbQuery;
+  update(values: Record<string, unknown>): DbQuery;
+  upsert(values: Record<string, unknown>[], options: { onConflict: string }): DbQuery;
+  maybeSingle(): PromiseLike<DbResult>;
+}
 export interface Db {
   rpc(fn: string, args?: Record<string, unknown>): PromiseLike<{ data: unknown; error: { message: string } | null }>;
-  from(table: string): any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  from(table: string): DbQuery;
 }
 const check = <T>(result: { data: T; error: { message: string } | null }, what: string): T => {
   if (result.error) throw new Error(`${what}: ${result.error.message}`);

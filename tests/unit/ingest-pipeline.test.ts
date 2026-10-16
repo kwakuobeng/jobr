@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import boards from "../../data/job-boards.json";
 import type { HttpClient } from "../../src/lib/ingestion/ssrf-client";
 import {
-  BoardSchema, embedPendingJobs, fetchClient, fetchSourceJobs, runSource, slugify, syncBoards, toBatchRow, type Db, type Source,
+  BoardSchema, embedPendingJobs, fetchClient, fetchSourceJobs, runSource, slugify, syncBoards, toBatchRow, type Db, type DbQuery, type Source,
 } from "../../src/lib/ingestion/pipeline";
 const fixtures = JSON.parse(readFileSync(new URL("../fixtures/job_sources/tier1_fixtures.json", import.meta.url), "utf8")) as Record<string, unknown>;
 const client = (payload: unknown, status = 200) => vi.fn<HttpClient>().mockResolvedValue({ status, text: JSON.stringify(payload), headers: {} });
@@ -20,7 +20,7 @@ function fakeDb(rows: unknown[] = [], rpcData: unknown = [{ inserted: 1, merged:
   };
   const db: Db = {
     rpc: vi.fn(async (fn: string, args?: Record<string, unknown>) => { calls.push([`rpc.${fn}`, args]); return { data: rpcData, error: errors.rpc && fn === "ingest_job_batch" ? { message: errors.rpc } : null }; }),
-    from: (table: string) => builder(table),
+    from: (table: string) => builder(table) as unknown as DbQuery,
   };
   return { db, calls };
 }
@@ -41,14 +41,43 @@ describe("fetchClient", () => {
     const get = fetchClient(["api.ashbyhq.com"], fetchImpl as unknown as typeof fetch);
     await expect(get("https://api.ashbyhq.com/posting-api/job-board/a")).resolves.toMatchObject({ status: 200, text: "{}", headers: { etag: "x" } });
     expect(fetchImpl).toHaveBeenCalledWith("https://api.ashbyhq.com/posting-api/job-board/a", expect.objectContaining({ redirect: "manual", method: "GET" }));
+    await expect(get("https://api.ashbyhq.com:8443/x")).rejects.toThrow("Blocked");
     await expect(get("https://evil.example/x")).rejects.toThrow("Blocked");
     await expect(get("http://api.ashbyhq.com/x")).rejects.toThrow("Blocked");
     await expect(get("https://u:p@api.ashbyhq.com/x")).rejects.toThrow("Blocked");
   });
   it("rejects oversized bodies", async () => {
-    const big = { text: async () => "x".repeat(20 * 1024 * 1024 + 1), status: 200, headers: new Headers() };
-    const get = fetchClient(["api.lever.co"], (async () => big) as unknown as typeof fetch);
+    const get = fetchClient(["api.lever.co"], vi.fn(async () => new Response("x".repeat(5 * 1024 * 1024 + 1))));
     await expect(get("https://api.lever.co/v0/postings/a")).rejects.toThrow("too large");
+  });
+  it("cancels before reading when Content-Length exceeds 5 MiB", async () => {
+    const cancel = vi.fn();
+    const response = new Response(new ReadableStream({ cancel }), { headers: { "content-length": String(5 * 1024 * 1024 + 1) } });
+    const get = fetchClient(["api.lever.co"], vi.fn(async () => response));
+    await expect(get("https://api.lever.co/x")).rejects.toThrow("too large");
+    expect(cancel).toHaveBeenCalledOnce();
+  });
+  it("counts streamed bytes, cancels overflow and handles UTF-8 split across chunks", async () => {
+    const cancel = vi.fn();
+    let reads = 0;
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) { reads++; controller.enqueue(new Uint8Array(3 * 1024 * 1024)); }, cancel,
+    });
+    const get = fetchClient(["api.lever.co"], vi.fn(async () => new Response(body)));
+    await expect(get("https://api.lever.co/x")).rejects.toThrow("too large");
+    expect(cancel).toHaveBeenCalledOnce();
+    expect(reads).toBeLessThanOrEqual(3);
+    const encoded = new TextEncoder().encode("€");
+    const utf8 = new ReadableStream<Uint8Array>({ start(controller) {
+      controller.enqueue(encoded.slice(0, 1)); controller.enqueue(encoded.slice(1)); controller.close();
+    } });
+    expect((await fetchClient(["api.lever.co"], vi.fn(async () => new Response(utf8)))("https://api.lever.co/x")).text).toBe("€");
+  });
+  it("accepts exactly 5 MiB and an empty response without following a redirect", async () => {
+    const get = fetchClient(["api.lever.co"], vi.fn(async () => new Response("x".repeat(5 * 1024 * 1024))));
+    expect((await get("https://api.lever.co/x")).text.length).toBe(5 * 1024 * 1024);
+    const redirect = fetchClient(["api.lever.co"], vi.fn(async () => new Response(null, { status: 302, headers: { location: "http://127.0.0.1" } })));
+    expect(await redirect("https://api.lever.co/x")).toMatchObject({ status: 302, text: "" });
   });
 });
 

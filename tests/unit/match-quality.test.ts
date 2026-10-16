@@ -68,7 +68,7 @@ describe("embeddings (Workers AI bge-base, 768-dim)", () => {
       const b: Record<string, unknown> = {};
       b.select = () => b; b.eq = () => b; b.maybeSingle = async () => ({ data: { target_embedding_source_hash: hash }, error: null });
       b.update = (v: unknown) => { updates.push(v); return { eq: () => ({ eq: async () => ({ error: updateError }) }) }; };
-      return { client: { from: () => b }, updates };
+      return { client: { from: () => b } as unknown as import("../../src/lib/jobs/profile-embedding").ProfileClient, updates };
     };
     const fresh = make(null);
     expect(await ensureProfileEmbedding(fresh.client, "u", "p", chips, ai)).toBe("updated");

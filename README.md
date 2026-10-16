@@ -31,7 +31,7 @@ local stack only. Existing `test:db` uses a disposable vanilla PostgreSQL databa
 compatibility harness, not proof of a working Supabase stack. Do not run it against a
 production database.
 
-Copy `.env.example` to `.env.local` for future service credentials. Never commit secrets.
+Copy `.env.example` to `.env.local` for local service configuration. Never commit secrets.
 USAJOBS receives its API key and email user agent through server-side adapter configuration;
 no live USAJOBS credential is bundled. The five-board live suite uses public ATS APIs.
 
@@ -44,7 +44,7 @@ no live USAJOBS credential is bundled. The five-board live suite uses public ATS
 - `src/lib/ingestion`: HTTPS/socket DNS guards, bounded requests without redirects, rate
   limiting, Greenhouse/Ashby/Lever/USAJOBS/JSON-LD adapters, authoritative membership checks,
   and pure four-tier deduplication decisions. Persistence must apply those decisions in a
-  transaction and retain source uniqueness; this milestone does not run an ingestion worker.
+  transaction and retain source uniqueness. The hourly Worker is documented in `apps/ingest/README.md`.
 - `specs/api/contracts.ts` and `specs/ui/component_architecture.md`: later API and UI contracts.
 - `components.json` and `src/components/ui/button.tsx`: shadcn-compatible component foundation.
 
@@ -79,7 +79,7 @@ See `specs/m1_1_verification.md` for commands, results and open gates. XML bound
 closed schemas, tool isolation and deterministic validation are defense layers; they do not
 prove a model cannot hallucinate. Valid citation text does not prove that a paraphrase is
 entailed by it. Human review is required before authorizing factual answers or submission.
-No live model execution or automatic application submission is implemented in M1.1.
+Resume extraction optionally calls the configured AI provider; live grounding still requires verification. Automatic application submission is not implemented.
 
 ## Cloudflare Workers
 
@@ -93,7 +93,7 @@ Use Node 24 and pnpm 11.25.0. Install with `pnpm install --frozen-lockfile`.
 
 The placeholder home page remains at `/`; `GET /api/health` returns `{"ok":true}`.
 Use that endpoint to check the local preview after startup. No ATS submission or
-paid data source is added. Supabase integration remains future work; the public
+paid data source is added. Auth, resume storage and matches use Supabase; the public
 variable names are documented in `.env.example`. Supply actual values through
 local environment configuration or deployment settings, never committed files.
 
@@ -161,14 +161,15 @@ require review; dated employment history is not invented. Raw text and line IDs
 are stored on `resumes`; extraction provenance and editable chips are kept in
 `resume_versions.normalized_profile_json`. Editing chips preserves the original
 extraction. **Use for matching** saves `resume_versions.is_user_approved` on the
-shown version. Follow-up: matching does not consume these chips yet; this PR
-makes no changes to ranking, candidate embeddings, or hard filters.
+shown version. Matching consumes approved chips for lexical retrieval and, on Workers with an AI
+binding, a hash-gated profile embedding. Suggested skills require acceptance before
+joining the explicit chips.
 
 Workplace badges map stored values to Remote / Onsite / Hybrid / Unknown.
 Stored locations are displayed when useful; there is no scraping, inference,
 backfill, or write to canonical jobs. Scores are under Match details.
 
-### Deploy order for this PR
+### Resume storage deployment (migration 0007)
 
 1. Merge the PR, then apply `supabase/migrations/0007_storage_resumes.sql` to
    hosted project `nwnhsqayjfwxfuthkymw` using the project's existing migration
@@ -190,3 +191,10 @@ and failure flows, anonymous redirects, and cross-user Storage metadata pgTAP.
 The vanilla PostgreSQL harness uses a minimal Storage metadata stand-in and
 cannot prove Storage HTTP behavior; CI runs the same policies on real Supabase.
 The hosted checks above remain required after migration and deployment.
+
+## Production readiness
+
+See [the current readiness runbook](specs/production_readiness.md) for migration
+0009, backfill, Workers AI, queues, smoke checks and remaining live gates. Older
+milestone sections above describe their original scope; a green health response
+does not establish the deployed commit or database migration state.

@@ -1,10 +1,10 @@
 import { bindingEmbedder, EMBEDDING_MODEL, profileEmbeddingText, sha256Hex, toVectorLiteral, type AiBinding } from "../embeddings";
+import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { MatchingChips } from "./model";
 
 /** Minimal session (RLS-scoped) client surface used here. */
-interface ProfileClient {
-  from(table: "candidate_profiles"): any; // eslint-disable-line @typescript-eslint/no-explicit-any
-}
+export type ProfileClient = Pick<SupabaseClient, "from">;
 /** Workers AI binding from the OpenNext Cloudflare context; null outside Workers (tests, next dev). */
 export async function aiBinding(): Promise<AiBinding | null> {
   try {
@@ -24,7 +24,7 @@ export async function ensureProfileEmbedding(client: ProfileClient, userId: stri
     const hash = await sha256Hex(`${EMBEDDING_MODEL}\n${text}`);
     const current = await client.from("candidate_profiles").select("target_embedding_source_hash").eq("id", profileId).eq("user_id", userId).maybeSingle();
     if (current.error) return "skipped";
-    if ((current.data as { target_embedding_source_hash?: string | null } | null)?.target_embedding_source_hash === hash) return "current";
+    if (z.object({ target_embedding_source_hash: z.string().nullable().optional() }).nullable().parse(current.data)?.target_embedding_source_hash === hash) return "current";
     const [vector] = await bindingEmbedder(ai)([text]);
     if (!vector) return "skipped";
     const saved = await client.from("candidate_profiles").update({ target_job_embedding: toVectorLiteral(vector), target_embedding_model: EMBEDDING_MODEL, target_embedding_source_hash: hash })

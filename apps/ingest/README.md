@@ -55,7 +55,7 @@ Each seed entry in `data/seed-boards.json` stores its `source` URL, `jobsAtVerif
   boards, each verified HTTP 200) into `job_sources`, adds USAJOBS when its key is set, and enqueues
   one message per active source. It also runs `merge_duplicate_postings` and `close_stale_jobs(48)`.
 - **Queue consumer** pulls one source using `src/lib/ingestion/pipeline.ts` (fetch-only, host allowlist,
-  no redirects). It writes pages of 500 or fewer rows through `ingest_job_batch`, which upserts, merges
+  no redirects, 20-second timeout, streamed 5 MiB body limit, and Workers public-egress restriction). It writes pages of 500 or fewer rows through `ingest_job_batch`, which upserts, merges
   per-office copies and stores region/country. It then embeds up to 100 new jobs with Workers AI
   (`@cf/baai/bge-base-en-v1.5`, 768-dim).
 - Supported providers: Greenhouse, Ashby, Lever, USAJOBS. Workday is intentionally not implemented.
@@ -64,3 +64,10 @@ Each seed entry in `data/seed-boards.json` stores its `source` URL, `jobsAtVerif
 First deploy (Kwaku): `wrangler queues create jobr-ingest-sources`, `wrangler queues create jobr-ingest-dlq`,
 `wrangler secret put SUPABASE_SERVICE_ROLE_KEY -c apps/ingest/wrangler.jsonc` (optionally `USAJOBS_API_KEY`,
 and set `USAJOBS_USER_AGENT_EMAIL`), then `wrangler deploy -c apps/ingest/wrangler.jsonc`.
+
+Queue logs include `source_ok` / `source_failed` with source ID, provider and board,
+followed by `queue_summary` counts for succeeded, skipped, failed, embedded and
+embedding failures. Failed source messages retry; successful source writes stay
+acked if the separate embedding pass fails. Embedding backlog is retried in later
+batches or by the backfill. Cron source synchronization and housekeeping errors
+reject the scheduled task. See `specs/production_readiness.md` for live gates.
