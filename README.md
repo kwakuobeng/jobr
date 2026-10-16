@@ -148,8 +148,10 @@ use the cookie session and existing table RLS; no privileged client is used.
 Parsing runs locally in the upload request: unpdf's serverless PDF.js build for
 PDF text, fflate plus XML parsing for DOCX. Extraction caps PDF pages, text length
 and DOCX document XML size, rejects DTD/entity definitions, and does not render
-images or perform OCR. No OpenAI/XAI key is required or read, and resume text is
-not sent to a model. Only the public Supabase URL/key used by auth are required.
+images or perform OCR. Without an AI key the parser uses local heuristics. When
+`XAI_API_KEY` or `OPENAI_API_KEY` is configured server-side, extracted resume text
+is sent to that provider for grounded extraction and advisory skill suggestions
+(XAI takes precedence). Neither key is required for the local fallback.
 Bounded multipart reads enforce the size limit even without Content-Length.
 Private Storage must exist; upload fails with a migration-specific error if it
 is unavailable. Original files are retained privately, including failed parses.
