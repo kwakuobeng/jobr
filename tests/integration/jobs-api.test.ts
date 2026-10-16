@@ -52,7 +52,7 @@ it("forwards the real RPC parameters and returns an empty result", async () => {
   state.client.rpc.mockResolvedValue(result([]));
   const response = await POST(request("matches", { candidate_profile_id: profileId, query: "engineer", include_stretch_exceptions: false, limit: 12 }));
   expect(response.status).toBe(200); expect(await response.json()).toEqual([]);
-  expect(state.client.rpc).toHaveBeenCalledWith("match_jobs_hybrid", { p_candidate_profile_id: profileId, p_query_text: "engineer", p_include_stretch_exceptions: false, p_rrf_k: 60, p_top_n: 12 });
+  expect(state.client.rpc).toHaveBeenCalledWith("match_jobs_hybrid", { p_candidate_profile_id: profileId, p_query_text: "engineer", p_include_stretch_exceptions: false, p_rrf_k: 60, p_top_n: 12, p_region: "all", p_us_or_remote_only: false, p_max_per_employer: 3 });
 });
 it("merges approved resume chips into the RPC query and adds a soft reason", async () => {
   const resumeId = "cccccccc-0000-4000-8000-000000000003";

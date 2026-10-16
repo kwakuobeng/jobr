@@ -30,7 +30,7 @@ VALUES (
   'Primary Distributed Systems Profile',
   true,
   72,
-  array_fill(0.02::real, ARRAY[1536])::vector(1536)
+  array_fill(0.02::real, ARRAY[768])::vector(768)
 );
 
 -- 3. Seed three employers (Allowed Corp, Excluded Corp, Allowed Corp 2)
@@ -101,7 +101,7 @@ VALUES
     'https://boards.greenhouse.io/stripe/jobs/101',
     'https://boards.greenhouse.io/stripe/jobs/101',
     'active',
-    array_fill(0.02::real, ARRAY[1536])::vector(1536)
+    array_fill(0.02::real, ARRAY[768])::vector(768)
   ),
   (
     '10000000-0000-0000-0000-000000000002',
@@ -124,8 +124,8 @@ VALUES
     'active',
     (
       ARRAY[0.05::real, -0.02::real] ||
-      array_fill(0.02::real, ARRAY[1534])
-    )::vector(1536)
+      array_fill(0.02::real, ARRAY[766])
+    )::vector(768)
   ),
   (
     '10000000-0000-0000-0000-000000000003',
@@ -146,7 +146,7 @@ VALUES
     'https://boards.greenhouse.io/blockedcorp/jobs/103',
     'https://boards.greenhouse.io/blockedcorp/jobs/103',
     'active',
-    array_fill(0.02::real, ARRAY[1536])::vector(1536)
+    array_fill(0.02::real, ARRAY[768])::vector(768)
   ),
   (
     '10000000-0000-0000-0000-000000000004',
@@ -167,7 +167,7 @@ VALUES
     'https://boards.greenhouse.io/stripe/jobs/104',
     'https://boards.greenhouse.io/stripe/jobs/104',
     'closed',
-    array_fill(0.02::real, ARRAY[1536])::vector(1536)
+    array_fill(0.02::real, ARRAY[768])::vector(768)
   ),
   (
     '10000000-0000-0000-0000-000000000005',
@@ -188,7 +188,7 @@ VALUES
     'https://boards.greenhouse.io/stripe/jobs/105',
     'https://boards.greenhouse.io/stripe/jobs/105',
     'active',
-    array_fill(0.02::real, ARRAY[1536])::vector(1536)
+    array_fill(0.02::real, ARRAY[768])::vector(768)
   ),
   (
     '10000000-0000-0000-0000-000000000006',
@@ -209,7 +209,7 @@ VALUES
     'https://boards.greenhouse.io/stripe/jobs/106',
     'https://boards.greenhouse.io/stripe/jobs/106',
     'active',
-    array_fill(0.02::real, ARRAY[1536])::vector(1536)
+    array_fill(0.02::real, ARRAY[768])::vector(768)
   ),
   (
     '10000000-0000-0000-0000-000000000007',
@@ -230,7 +230,7 @@ VALUES
     'https://boards.greenhouse.io/stripe/jobs/107',
     'https://boards.greenhouse.io/stripe/jobs/107',
     'active',
-    array_fill(0.02::real, ARRAY[1536])::vector(1536)
+    array_fill(0.02::real, ARRAY[768])::vector(768)
   );
 
 -- Record a prior rejection by Alice for 'hash_rejected_role'
@@ -275,19 +275,19 @@ VALUES
   ('10000000-0000-0000-0000-000000000008','e1111111-1111-1111-1111-111111111111','hash_domain_host',1008,
    'Platform Engineer','platform-engineer','Stripe','remote','full_time',200000,240000,ARRAY['go'],'offered',
    'Platform role hosted on an excluded domain.','Platform','https://careers.blocked.example.com/jobs/108',
-   'https://careers.blocked.example.com/jobs/108','active',array_fill(0.02::real, ARRAY[1536])::vector(1536)),
+   'https://careers.blocked.example.com/jobs/108','active',array_fill(0.02::real, ARRAY[768])::vector(768)),
   ('10000000-0000-0000-0000-000000000009','e3333333-3333-3333-3333-333333333333','hash_lookalike_host',1009,
    'Platform Engineer','platform-engineer','Linear','remote','full_time',200000,240000,ARRAY['go'],'offered',
    'Platform role on a lookalike host that must NOT be excluded.','Platform','https://notblocked-example.com/jobs/109',
-   'https://notblocked-example.com/jobs/109','active',array_fill(0.01::real, ARRAY[1536])::vector(1536)),
+   'https://notblocked-example.com/jobs/109','active',array_fill(0.01::real, ARRAY[768])::vector(768)),
   ('10000000-0000-0000-0000-000000000010','e3333333-3333-3333-3333-333333333333','hash_min_only_low',1010,
    'Platform Engineer','platform-engineer','Linear','remote','full_time',150000,NULL,ARRAY['go'],'offered',
    'Min-only salary below the floor.','Platform','https://jobs.ashbyhq.com/linear/110',
-   'https://jobs.ashbyhq.com/linear/110','active',array_fill(0.02::real, ARRAY[1536])::vector(1536));
+   'https://jobs.ashbyhq.com/linear/110','active',array_fill(0.02::real, ARRAY[768])::vector(768));
 
 
 SELECT is((SELECT count(*)::int FROM pg_proc WHERE proname = 'match_jobs_hybrid' AND pronamespace = 'public'::regnamespace), 1, 'exactly one match_jobs_hybrid overload exists');
-SELECT ok(NOT has_function_privilege('public', 'public.match_jobs_hybrid(uuid,text,boolean,integer,integer)', 'EXECUTE'), 'PUBLIC holds no EXECUTE on hybrid RPC');
+SELECT ok(NOT has_function_privilege('public', 'public.match_jobs_hybrid(uuid,text,boolean,integer,integer,text,boolean,integer)', 'EXECUTE'), 'PUBLIC holds no EXECUTE on hybrid RPC');
 
 SET LOCAL ROLE anon;
 SELECT throws_ok($$SELECT * FROM public.match_jobs_hybrid('c1111111-1111-1111-1111-111111111111'::uuid, 'distributed systems kubernetes')$$, '42501', NULL, 'anon call throws 42501');

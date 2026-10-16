@@ -1,7 +1,8 @@
 import { z } from "zod";
 import type { createClient } from "@/lib/supabase/server";
 import { ApiErrorSchema, FeedRequest, PreferencesRequest, type ApiError } from "../../../specs/api/contracts";
-import { mapMatches, mergeQueryWithChips, preferenceColumns, PreferencesInput, jobRegion, sortMatches, titleMatches, usOrRemote, zipToPoint, type MatchingChips } from "./model";
+import { mapMatches, mergeQueryWithChips, monotonicScores, preferenceColumns, PreferencesInput, sortMatches, titleMatches, zipToPoint, type MatchingChips } from "./model";
+import { aiBinding, ensureProfileEmbedding } from "./profile-embedding";
 type Client = Awaited<ReturnType<typeof createClient>>;
 export class JobError extends Error {
   constructor(public code: ApiError["code"], message: string, public status: number) { super(message); }
@@ -80,17 +81,21 @@ export async function findMatches(client: Client, userId: string, input: unknown
   const prefs = await ensurePreferences(client, userId, values.candidate_profile_id);
   const chips = await approvedResumeChips(client, userId, values.candidate_profile_id);
   const region = values.region ?? "all";
-  const filtering = Boolean(values.title_keywords?.length) || values.us_or_remote_only === true || region !== "all";
+  // Semantic leg: keep the profile embedding in step with the confirmed chips (Workers AI; no-op elsewhere).
+  await ensureProfileEmbedding(client, userId, values.candidate_profile_id, chips, await aiBinding());
+  // Region and US/Remote now filter in SQL before the top-N cut (0009); only the title filter runs here.
+  const filtering = Boolean(values.title_keywords?.length);
   const sorting = (values.sort ?? "best") !== "best";
   const result = await client.rpc("match_jobs_hybrid", {
     p_candidate_profile_id: values.candidate_profile_id, p_query_text: mergeQueryWithChips(values.query, chips),
     // Over-fetch the RPC maximum when filtering/sorting so the requested page is drawn from the best 50.
     p_include_stretch_exceptions: values.include_stretch_exceptions, p_rrf_k: 60, p_top_n: filtering || sorting ? 50 : values.limit,
+    p_region: region, p_us_or_remote_only: values.us_or_remote_only === true, p_max_per_employer: 3,
   });
   dbError(result.error);
-  // Filters run after chip widening, so resume chips can never override the title, US/remote or region filter.
+  // Filters run after chip widening, so resume chips can never override the title filter.
   let rows = z.array(z.object({ canonical_job_id: z.string(), title: z.string(), workplace_type: z.string().nullish(), locations_json: z.unknown().optional(), location_label: z.string().nullish() }).passthrough()).parse(result.data)
-    .filter((row) => titleMatches(row.title, values.title_keywords) && (!values.us_or_remote_only || usOrRemote(row)) && (region === "all" || jobRegion(row) === region));
+    .filter((row) => titleMatches(row.title, values.title_keywords));
   // Card metadata (posted date, coordinates) from 0008; degrade gracefully if it is not applied yet.
   if (rows.length) {
     const meta = await client.rpc("job_card_meta", { p_job_ids: rows.map((r) => r.canonical_job_id) });
@@ -104,5 +109,8 @@ export async function findMatches(client: Client, userId: string, input: unknown
     query: values.query, title_keywords: values.title_keywords, salary_floor: prefs.hard_min_annual_salary_usd,
     allowed_workplaces: prefs.allowed_workplace_types, origin: originZip && originPoint ? { zip: originZip, point: originPoint } : null,
   });
-  return sortMatches(mapped, values.sort ?? "best", values.workplace_order).slice(0, values.limit);
+  const sort = values.sort ?? "best";
+  const page = sortMatches(mapped, sort, values.workplace_order).slice(0, values.limit);
+  // Best match: the displayed 1-10 score never increases down the list.
+  return sort === "best" ? monotonicScores(page) : page;
 }

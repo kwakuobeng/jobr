@@ -8,6 +8,7 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+  "ai": { "binding": "AI" },
   "services": [
     { "binding": "WORKER_SELF_REFERENCE", "service": "jobr" }
   ]

@@ -72,11 +72,11 @@ SELECT is_empty($$SELECT 1 FROM public.match_jobs_hybrid('c4444444-4444-4444-844
 
 -- ---------------------------------------------------------------- with embeddings
 RESET ROLE;
-UPDATE public.candidate_profiles SET target_job_embedding = array_fill(0.02::real, ARRAY[1536])::vector(1536)
+UPDATE public.candidate_profiles SET target_job_embedding = array_fill(0.02::real, ARRAY[768])::vector(768)
   WHERE id = 'c4444444-4444-4444-8444-444444444444';
-UPDATE public.canonical_jobs SET requirements_embedding = array_fill(0.02::real, ARRAY[1536])::vector(1536)
+UPDATE public.canonical_jobs SET requirements_embedding = array_fill(0.02::real, ARRAY[768])::vector(768)
   WHERE id = 'ffffffff-0000-4000-8000-0000000000a1';
-UPDATE public.canonical_jobs SET requirements_embedding = (ARRAY[0.9::real] || array_fill(0.02::real, ARRAY[1535]))::vector(1536)
+UPDATE public.canonical_jobs SET requirements_embedding = (ARRAY[0.9::real] || array_fill(0.02::real, ARRAY[767]))::vector(768)
   WHERE id = '88888888-0000-4000-8000-0000000000a2';
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claims', '{"sub":"d4444444-4444-4444-8444-444444444444","role":"authenticated"}', true);

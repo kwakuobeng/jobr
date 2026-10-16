@@ -47,9 +47,20 @@ Each seed entry in `data/seed-boards.json` stores its `source` URL, `jobsAtVerif
   board, and source job ID. Identical titles at different requisitions or locations
   survive. No cross-provider merge is inferred from similar titles alone.
 
-## Worker
+## Worker (hourly refresh, D6)
 
-`worker/index.ts` is an undeployed orchestration stub; its imported HTTP client
-uses Node DNS and Undici. Cloudflare runtime compatibility and deployment remain
-separate work; do not deploy this stub as-is. D6 specifies Workers/Queues/Cron
-with application-managed idempotency. Supabase upsert remains M2.
+`worker/index.ts` + `wrangler.jsonc` define the `jobr-ingest` Worker (code only, not deployed):
+
+- **Cron** `0 * * * *` upserts the curated board list (`data/job-boards.json`, 150 Greenhouse/Ashby
+  boards, each verified HTTP 200) into `job_sources`, adds USAJOBS when its key is set, and enqueues
+  one message per active source. It also runs `merge_duplicate_postings` and `close_stale_jobs(48)`.
+- **Queue consumer** pulls one source using `src/lib/ingestion/pipeline.ts` (fetch-only, host allowlist,
+  no redirects). It writes pages of 500 or fewer rows through `ingest_job_batch`, which upserts, merges
+  per-office copies and stores region/country. It then embeds up to 100 new jobs with Workers AI
+  (`@cf/baai/bge-base-en-v1.5`, 768-dim).
+- Supported providers: Greenhouse, Ashby, Lever, USAJOBS. Workday is intentionally not implemented.
+  SmartRecruiters has no normalizer in `specs/` yet.
+
+First deploy (Kwaku): `wrangler queues create jobr-ingest-sources`, `wrangler queues create jobr-ingest-dlq`,
+`wrangler secret put SUPABASE_SERVICE_ROLE_KEY -c apps/ingest/wrangler.jsonc` (optionally `USAJOBS_API_KEY`,
+and set `USAJOBS_USER_AGENT_EMAIL`), then `wrangler deploy -c apps/ingest/wrangler.jsonc`.
