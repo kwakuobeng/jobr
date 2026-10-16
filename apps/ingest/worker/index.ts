@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import boardsJson from "../../../data/job-boards.json";
 import { bindingEmbedder, type AiBinding } from "../../../src/lib/embeddings";
 import {
-  BoardSchema, QueueMessageSchema, SourceSchema, embedPendingJobs, runSource, syncBoards, type Db,
+  BoardSchema, QueueMessageSchema, SourceSchema, embedPendingJobs, runSource, syncBoards, type Db, type Source,
 } from "../../../src/lib/ingestion/pipeline";
 import { z } from "zod";
 
@@ -28,7 +28,7 @@ export async function scheduled(env: Env): Promise<number> {
     const usa = await client.from("job_sources").upsert(
       [{ provider_type: "usajobs", tenant_slug: "usajobs-search", display_name: "USAJOBS", base_endpoint_url: "https://data.usajobs.gov/api/search", is_active: true, poll_interval_minutes: 60 }],
       { onConflict: "provider_type,tenant_slug" });
-    if (usa.error) log("usajobs_source_error", { message: usa.error.message });
+    if (usa.error) throw new Error(`USAJOBS source sync: ${usa.error.message}`);
   }
   const sources = await syncBoards(client, boards);
   for (let i = 0; i < sources.length; i += 100)
@@ -37,31 +37,41 @@ export async function scheduled(env: Env): Promise<number> {
   const merged = await client.rpc("merge_duplicate_postings");
   const closed = await client.rpc("close_stale_jobs", { p_stale_hours: 48 });
   log("cron", { sources: sources.length, merged: merged.data, closed: closed.data, errors: [merged.error?.message, closed.error?.message].filter(Boolean) });
+  if (merged.error || closed.error) throw new Error("Ingestion housekeeping failed; see cron errors");
   return sources.length;
 }
 
 export async function consume(messages: readonly Message[], env: Env): Promise<void> {
   const client = db(env);
+  const summary = { messages: messages.length, succeeded: 0, skipped: 0, failed: 0, embedded: 0, embeddingFailures: 0 };
   for (const message of messages) {
+    let source: Source | undefined;
+    let sourceId: string | undefined;
     try {
-      const { sourceId } = QueueMessageSchema.parse(message.body);
+      sourceId = QueueMessageSchema.parse(message.body).sourceId;
       const found = await client.from("job_sources").select("id,provider_type,tenant_slug,display_name").eq("id", sourceId).eq("is_active", true).maybeSingle();
       if (found.error) throw new Error(found.error.message);
-      if (!found.data) { message.ack(); continue; }
-      const source = SourceSchema.parse(found.data);
+      if (!found.data) { summary.skipped++; message.ack(); continue; }
+      source = SourceSchema.parse(found.data);
       const result = await runSource(client, source, {
         ...(env.USAJOBS_API_KEY && env.USAJOBS_USER_AGENT_EMAIL ? { usajobs: { apiKey: env.USAJOBS_API_KEY, userAgent: env.USAJOBS_USER_AGENT_EMAIL } } : {}),
       });
-      log("source_ok", { ...result });
+      summary.succeeded++;
+      log("source_ok", { ...result, provider: source.provider_type, board: source.tenant_slug });
       message.ack();
     } catch (error) {
-      log("source_failed", { message: error instanceof Error ? error.message : String(error) });
+      summary.failed++;
+      log("source_failed", { sourceId: sourceId ?? null, provider: source?.provider_type ?? null, board: source?.tenant_slug ?? null, message: error instanceof Error ? error.message : String(error) });
       message.retry();
     }
   }
   // Embed new/changed jobs with Workers AI after each batch (bounded; free tier).
-  try { log("embedded", { jobs: await embedPendingJobs(client, bindingEmbedder(env.AI), 100) }); }
-  catch (error) { log("embed_failed", { message: error instanceof Error ? error.message : String(error) }); }
+  try { summary.embedded = await embedPendingJobs(client, bindingEmbedder(env.AI), 100); }
+  catch (error) {
+    summary.embeddingFailures++;
+    log("embed_failed", { message: error instanceof Error ? error.message : String(error) });
+  }
+  log("queue_summary", summary);
 }
 
 const worker = {

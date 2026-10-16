@@ -6,7 +6,7 @@
   "name": "jobr-ingest",
   "main": "worker/index.ts",
   "compatibility_date": "2026-10-15",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "triggers": { "crons": ["0 * * * *"] },
   "ai": { "binding": "AI" },
   "queues": {
