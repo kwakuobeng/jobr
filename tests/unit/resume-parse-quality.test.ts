@@ -95,7 +95,7 @@ describe("optional AI parse", () => {
     vi.stubEnv("XAI_API_KEY", "test-key");
     const spy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("nope", { status: 500 }));
     const result = await parseResumeText(raw, REF);
-    expect(result.ai).toBeNull(); expect(result.ai_error).toBe("Error"); expect(result.parser).toBe("local-v2");
+    expect(result.ai).toBeNull(); expect(result.ai_error).toBe("Error"); expect(result.parser).toBe("local-v3");
     expect(result.chips.skills.length).toBe(20);
     spy.mockRestore(); vi.unstubAllEnvs();
   });

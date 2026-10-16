@@ -1,6 +1,6 @@
 import { mapResumeLines, verifyEvidence } from "@/lib/resume/quote-verifier";
 import { validateResumeExtraction } from "@/lib/resume/structured-parser";
-import { Chips } from "./model";
+import { Chips, CURRENT_PARSER } from "./model";
 
 /** Canonical skill name -> extra aliases (all matched case-insensitively on word boundaries). */
 const LEXICON: Record<string, string[]> = {
@@ -151,7 +151,7 @@ export function suggestChips(raw: string, referenceDate = new Date().toISOString
   const computedYears = work.length && months > 0 ? Math.min(80, Math.round((months / 12) * 10) / 10) : null;
   const years = explicitYears ?? computedYears;
   return {
-    parser: "local-v2",
+    parser: CURRENT_PARSER,
     chips: Chips.parse({ skills: extraction.extracted_skills.map((s) => s.name), titles: decideTitles(titles, titleCounts, work.map((w) => w.title)), years }),
     years_source: explicitYears !== null ? "explicit" : computedYears !== null ? "computed" : null,
     explicit_years: explicitYears,

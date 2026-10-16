@@ -85,7 +85,7 @@ it("edits only an owned completed version and preserves extraction provenance", 
   const edited = { ...chips, skills: ["TypeScript", "SQL"] };
   const response = await PATCH(patch({ resume_id: resumeId, version_id: versionId, chips: edited, use_for_matching: true }));
   expect(await response.json()).toMatchObject({ chips: edited, use_for_matching: true });
-  expect(state.query.update).toHaveBeenCalledWith({ normalized_profile_json: { ...version.normalized_profile_json, chips: edited, chips_user_edited: true }, is_user_approved: true });
+  expect(state.query.update).toHaveBeenCalledWith({ normalized_profile_json: { ...version.normalized_profile_json, chips: edited, chips_user_edited: true, suggested_skills: [] }, is_user_approved: true });
   expect(state.query.eq).toHaveBeenCalledWith("base_resume_id", resumeId);
 });
 it("cannot attach edits to another user's resume/version", async () => {
@@ -95,4 +95,22 @@ it("cannot attach edits to another user's resume/version", async () => {
 });
 it("bounds chunked requests even without Content-Length", async () => {
   await expect(readBoundedBody(new Request("https://jobr.example", { method: "POST", body: "long body" }), 3)).rejects.toMatchObject({ status: 413 });
+});
+it("flags versions from an older parser so the UI can offer Re-parse", async () => {
+  state.results.push(ok(row), ok(version)); const result = await (await GET()).json();
+  expect(result.parser_outdated).toBe(true); expect(result.suggested_skills).toEqual([]);
+});
+it("PATCH accepts and dismisses suggestions but cannot inject new ones", async () => {
+  const stored = [{ name: "Negotiation", reason: "Common for account executive roles.", source: "rules" }, { name: "Closing", reason: "Closed revenue.", source: "rules" }, { name: "Coaching", reason: "Mentored.", source: "rules" }];
+  const v = { ...version, normalized_profile_json: { ...version.normalized_profile_json, parser: "local-v3", suggested_skills: stored } };
+  state.results.push(ok(row), ok(v), ok({ id: versionId }));
+  const body = { resume_id: resumeId, version_id: versionId, use_for_matching: true, chips: { ...chips, skills: ["TypeScript", "Negotiation"] },
+    // Closing kept; Coaching dismissed; Negotiation accepted; "Injected" is not a stored suggestion.
+    suggested_skills: [stored[1], { name: "Injected", reason: "x", source: "ai" }] };
+  const result = await (await PATCH(patch(body))).json();
+  expect(result.suggested_skills.map((s: { name: string }) => s.name)).toEqual(["Closing"]);
+  expect(result.chips.skills).toEqual(["TypeScript", "Negotiation"]); expect(result.parser_outdated).toBe(false);
+  const saved = state.query.update.mock.calls[0]![0] as { normalized_profile_json: { suggested_skills: Array<{ name: string }>; chips: { skills: string[] } } };
+  expect(saved.normalized_profile_json.suggested_skills.map((s) => s.name)).toEqual(["Closing"]);
+  expect(saved.normalized_profile_json.chips.skills).not.toContain("Closing");
 });
