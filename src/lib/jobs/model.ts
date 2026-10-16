@@ -103,6 +103,16 @@ export function mapMatches(value: unknown, chips?: MatchingChips | null, ctx: Ma
 export type Match = ReturnType<typeof mapMatches>[number];
 
 const MAX_TITLES = 8; const MAX_SKILLS = 20;
+/**
+ * One-word chips that appear in almost any posting body ("closing" the books, "outbound" APIs, "CRM"
+ * integrations) and pulled engineering/finance roles into sales results. Multi-word phrases and
+ * specific one-word tools/methods (Salesforce, MEDDIC, SQL, Tableau) are kept.
+ */
+const GENERIC_ONE_WORD = new Set("closing close negotiation negotiating prospecting outbound inbound crm communication communications leadership management sales selling marketing strategy strategic operations analytics analysis reporting presentation presentations collaboration teamwork training coaching customer customers pipeline forecasting planning research writing excel email phone travel saas b2b b2c enterprise growth revenue quota account accounts business development partnerships support success ai data cloud software technology product".split(" "));
+export function isGenericChip(value: string): boolean {
+  const words = value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  return words.length === 1 && GENERIC_ONE_WORD.has(words[0]!);
+}
 function term(value: string) {
   // Quote each chip as a websearch phrase; strip syntax characters so chips cannot alter query operators.
   const cleaned = value.replace(/["'()\\:&|!<>*-]/g, " ").replace(/\s+/g, " ").trim();
@@ -129,6 +139,7 @@ export function mergeQueryWithChips(query: string, chips: MatchingChips | null |
   if (!chips) return base;
   const seen = new Set<string>(); const terms: string[] = [];
   for (const value of [...chips.titles.slice(0, MAX_TITLES), ...chips.skills.slice(0, MAX_SKILLS)]) {
+    if (isGenericChip(value)) continue;
     const quoted = term(value); if (!quoted || seen.has(quoted.toLowerCase())) continue;
     seen.add(quoted.toLowerCase()); terms.push(quoted);
   }
@@ -144,26 +155,8 @@ export function titleMatches(title: string, keywords: readonly string[] | undefi
   const value = titleNorm(title);
   return wanted.some((k) => value.includes(k));
 }
-const US_STATES = "AL|AK|AZ|AR|CA|CO|CT|DE|DC|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY";
-const US_STATE_NAMES = "alabama|alaska|arizona|arkansas|california|colorado|connecticut|delaware|florida|georgia|hawaii|idaho|illinois|indiana|iowa|kansas|kentucky|louisiana|maine|maryland|massachusetts|michigan|minnesota|mississippi|missouri|montana|nebraska|nevada|new hampshire|new jersey|new mexico|new york|north carolina|north dakota|ohio|oklahoma|oregon|pennsylvania|rhode island|south carolina|south dakota|tennessee|texas|utah|vermont|virginia|washington|west virginia|wisconsin|wyoming";
-const US_CI_RE = new RegExp(`\\b(?:united states|usa|u\\.s\\.(?:a\\.)?|${US_STATE_NAMES})(?![a-z])`, "i");
-// Case-sensitive for 2-letter codes (", TX", "US") to avoid matching "us"/"or" in prose.
-const US_CS_RE = new RegExp(`\\bUS\\b|,\\s*(?:${US_STATES})\\b|^(?:${US_STATES})$`);
-const NON_US_RE = /\b(?:canada|united kingdom|uk|great britain|england|scotland|wales|ireland|germany|deutschland|france|spain|portugal|italy|netherlands|belgium|switzerland|austria|sweden|norway|denmark|finland|iceland|poland|czech(?:ia| republic)?|romania|hungary|greece|turkey|israel|uae|united arab emirates|saudi arabia|egypt|nigeria|kenya|ghana|south africa|india|pakistan|bangladesh|singapore|malaysia|indonesia|philippines|vietnam|thailand|japan|korea|china|hong kong|taiwan|australia|new zealand|brazil|argentina|chile|colombia|peru|mexico|costa rica|emea|apac|latam|europe|asia|toronto|vancouver|montreal|london|berlin|munich|dublin|paris|amsterdam|stockholm|madrid|barcelona|lisbon|warsaw|zurich|tel aviv|bangalore|bengaluru|sydney|melbourne|tokyo|seoul|são paulo|sao paulo)\b/i;
-const isUsText = (text: string) => US_CI_RE.test(text) || US_CS_RE.test(text);
-export type JobRegion = "us" | "non_us" | "unknown";
-/** Region from stored location text only. Remote roles count by stated region ("Remote - US" = US, "Remote - Sweden" = Non-US). */
-export function jobRegion(row: { locations_json?: unknown; location_label?: string | null }): JobRegion {
-  const parts = [...locationTextParts(row.locations_json), ...(row.location_label ? [row.location_label] : [])];
-  if (parts.some(isUsText)) return "us";
-  if (parts.some((p) => NON_US_RE.test(p))) return "non_us";
-  return "unknown";
-}
-/** "US or Remote only": US-located roles, plus Remote roles that do not state a non-US region. */
-export function usOrRemote(row: { workplace_type?: string | null; locations_json?: unknown; location_label?: string | null }): boolean {
-  const region = jobRegion(row);
-  return region === "us" || ((row.workplace_type ?? "").toLowerCase() === "remote" && region === "unknown");
-}
+export { jobRegion, usOrRemote, classifyLocation, classifyLocations, type JobRegion } from "./region";
+import { jobRegion, type JobRegion } from "./region";
 /** No employer HQ/country is stored, so origin is a labelled fallback from the posting's location. */
 export function companyOrigin(region: JobRegion): { label: "US posting" | "Non-US posting" | "Origin unknown"; inferred: true } {
   return { label: region === "us" ? "US posting" : region === "non_us" ? "Non-US posting" : "Origin unknown", inferred: true };
@@ -207,6 +200,11 @@ export function matchScore(input: { rrf: number; minRrf: number; maxRrf: number;
   const base = span > 0 ? 1 + 6 * ((input.rrf - input.minRrf) / span) : 7;
   const score = base + (input.titleHit ? 1.5 : 0) + (input.salaryOk ? 1 : 0) + (input.workplaceOk ? 0.5 : 0);
   return Math.max(1, Math.min(10, Math.round(score)));
+}
+/** Clamp displayed scores so they never rise down a best-match list (ranking stays the server's). */
+export function monotonicScores<T extends { match_score: number }>(rows: T[]): T[] {
+  let ceiling = 10;
+  return rows.map((row) => { ceiling = Math.min(ceiling, row.match_score); return row.match_score === ceiling ? row : { ...row, match_score: ceiling }; });
 }
 export type SortKey = "best" | "workplace" | "distance" | "compensation" | "newest";
 export type WorkplaceMode = "Remote" | "Hybrid" | "Onsite";

@@ -1,0 +1,28 @@
+{
+  // Jobr ingest worker: hourly refresh from all configured sources (D6). NOT deployed by the PR.
+  // Before the first deploy: `wrangler queues create jobr-ingest-sources` and `jobr-ingest-dlq`,
+  // `wrangler secret put SUPABASE_SERVICE_ROLE_KEY` (and USAJOBS_API_KEY), then `wrangler deploy -c apps/ingest/wrangler.jsonc`.
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "jobr-ingest",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-10-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "triggers": { "crons": ["0 * * * *"] },
+  "ai": { "binding": "AI" },
+  "queues": {
+    "producers": [{ "binding": "INGEST_QUEUE", "queue": "jobr-ingest-sources" }],
+    "consumers": [{
+      "queue": "jobr-ingest-sources",
+      "max_batch_size": 5,
+      "max_batch_timeout": 30,
+      "max_retries": 3,
+      "max_concurrency": 4,
+      "dead_letter_queue": "jobr-ingest-dlq"
+    }]
+  },
+  "vars": {
+    "SUPABASE_URL": "https://nwnhsqayjfwxfuthkymw.supabase.co",
+    "USAJOBS_USER_AGENT_EMAIL": ""
+  },
+  "observability": { "enabled": true }
+}

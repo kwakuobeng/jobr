@@ -1,23 +1,60 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
-import { fetchBoard } from "../../apps/ingest/src/adapters";
-import worker from "../../apps/ingest/worker/index";
-vi.mock("../../apps/ingest/src/adapters", () => ({ fetchBoard: vi.fn() }));
-afterEach(() => vi.restoreAllMocks());
-describe("undeployed worker run summaries", () => {
-  it("logs every failed provider/board and counts failures", async () => {
-    const out = vi.spyOn(console, "log").mockImplementation(() => {});
-    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
-    vi.mocked(fetchBoard).mockResolvedValueOnce([]).mockRejectedValueOnce(new Error("HTTP 503"));
-    await worker.scheduled({}, { SEED_BOARDS_JSON: JSON.stringify([
-      { ats: "greenhouse", token: "ok", company: "A", source: "fixture" },
-      { ats: "lever", token: "broken", company: "B", source: "fixture" },
-    ]) });
-    expect(JSON.parse(String(errors.mock.calls[0]?.[0]))).toEqual({ event: "ingestion_failure", provider: "lever", board: "broken", error: "HTTP 503" });
-    expect(JSON.parse(String(out.mock.calls[0]?.[0]))).toMatchObject({ boards: 2, ok: 1, failures: 1, jobs: 0 });
+import { describe, expect, it, vi, beforeEach } from "vitest";
+const state = vi.hoisted(() => ({ rows: [] as unknown[], single: null as unknown, rpc: [] as string[], fromError: null as null | { message: string } }));
+vi.mock("@supabase/supabase-js", () => ({
+  createClient: () => {
+    const builder = () => {
+      const b: Record<string, unknown> = {};
+      for (const m of ["select", "eq", "is", "order", "limit", "update", "upsert"]) b[m] = () => b;
+      b.maybeSingle = async () => ({ data: state.single, error: state.fromError });
+      b.then = (resolve: (v: unknown) => void) => resolve({ data: state.rows, error: state.fromError });
+      return b;
+    };
+    return { from: builder, rpc: async (fn: string) => { state.rpc.push(fn); return { data: fn === "ingest_job_batch" ? [{ inserted: 2, merged: 0, updated: 0 }] : 0, error: null }; } };
+  },
+}));
+import worker, { consume, scheduled, type Env } from "../../apps/ingest/worker/index";
+import { readFileSync } from "node:fs";
+const fixtures = JSON.parse(readFileSync(new URL("../fixtures/job_sources/tier1_fixtures.json", import.meta.url), "utf8")) as Record<string, unknown>;
+const env = (extra: Partial<Env> = {}): Env => ({
+  SUPABASE_URL: "https://x.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "service",
+  AI: { run: vi.fn(async (_m: string, input: { text: string[] }) => ({ data: input.text.map(() => Array(768).fill(0.2)) })) },
+  INGEST_QUEUE: { sendBatch: vi.fn(async () => {}) }, ...extra,
+});
+const msg = (body: unknown) => ({ body, ack: vi.fn(), retry: vi.fn() });
+beforeEach(() => { state.rows = []; state.single = null; state.rpc = []; state.fromError = null; vi.spyOn(console, "log").mockImplementation(() => {}); });
+
+describe("ingest worker (Cron → Queue → consumer)", () => {
+  it("cron syncs boards, enqueues one message per active source and runs housekeeping", async () => {
+    state.rows = Array.from({ length: 150 }, (_, i) => ({ id: `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`, provider_type: "greenhouse", tenant_slug: `b${i}`, display_name: "B" }));
+    const e = env({ USAJOBS_API_KEY: "k", USAJOBS_USER_AGENT_EMAIL: "a@b.co" });
+    expect(await scheduled(e)).toBe(150);
+    expect(e.INGEST_QUEUE.sendBatch).toHaveBeenCalledTimes(2);
+    expect(state.rpc).toEqual(["merge_duplicate_postings", "close_stale_jobs"]);
+    const waits: Promise<unknown>[] = [];
+    await worker.scheduled({}, env(), { waitUntil: (p) => waits.push(p) });
+    await Promise.all(waits);
   });
-  it("handles an empty enabled board registry without NaN shards", async () => {
-    const out = vi.spyOn(console, "log").mockImplementation(() => {});
-    await worker.scheduled({}, { SEED_BOARDS_JSON: "[]" });
-    expect(JSON.parse(String(out.mock.calls[0]?.[0]))).toMatchObject({ shard: 0, boards: 0, failures: 0 });
+  it("consumer ingests a source, acks, then embeds pending jobs", async () => {
+    state.single = { id: "11111111-1111-4111-8111-111111111111", provider_type: "lever", tenant_slug: "acme", display_name: "Acme" };
+    const spy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify(fixtures.lever)));
+    state.rows = [{ id: "j1", title: "AE", employer_name: "Acme", extracted_required_skills: [], description_plain: "x" }];
+    const m = msg({ sourceId: "11111111-1111-4111-8111-111111111111" });
+    const e = env();
+    await worker.queue({ messages: [m] }, e);
+    expect(m.ack).toHaveBeenCalled();
+    expect(state.rpc).toContain("ingest_job_batch");
+    expect(e.AI.run).toHaveBeenCalled();
+    spy.mockRestore();
+  });
+  it("acks inactive sources, retries failures, and survives embedding errors", async () => {
+    const gone = msg({ sourceId: "11111111-1111-4111-8111-111111111111" });
+    const bad = msg({ nope: 1 });
+    await consume([gone, bad], env({ AI: { run: async () => { throw new Error("quota"); } } }));
+    expect(gone.ack).toHaveBeenCalled();
+    expect(bad.retry).toHaveBeenCalled();
+    state.fromError = { message: "db down" };
+    const failing = msg({ sourceId: "11111111-1111-4111-8111-111111111111" });
+    await consume([failing], env());
+    expect(failing.retry).toHaveBeenCalled();
   });
 });
